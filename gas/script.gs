@@ -86,9 +86,34 @@ function doPost(e) {
 
   if (action === 'upsertNurture') { return json(upsertNurture(body)); }
   if (action === 'addNote')       { return json(addNote(body)); }
+  if (action === 'updateStatus')  { return json(updateLeadStatus(body)); }
   if (action === 'initTabs')      { initSheetTabs(); return json({ success: true }); }
 
   return json({ error: 'Unknown action: ' + action });
+}
+
+function updateLeadStatus(body) {
+  var ss    = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(LEADS_TAB);
+  var leadId = String(body.leadId || '').trim();
+  var newStatus = String(body.newStatus || '').trim();
+  
+  if (!sheet || !leadId || !newStatus) return { error: 'Missing requirements' };
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(h) { return String(h).trim(); });
+  var idColIdx     = headers.indexOf('id');
+  var statusColIdx = headers.indexOf('lead_status');
+  
+  if (idColIdx === -1 || statusColIdx === -1) return { error: 'Columns not found in sheet' };
+
+  var ids = sheet.getRange(2, idColIdx + 1, sheet.getLastRow() - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]).trim() === leadId) {
+      sheet.getRange(i + 2, statusColIdx + 1).setValue(newStatus);
+      break;
+    }
+  }
+  return { success: true };
 }
 
 function json(data) {
@@ -297,13 +322,14 @@ function importExistingNotes() {
   var idColIdx = headers.indexOf('id');
   if (idColIdx === -1) { Logger.log('No id column found.'); return; }
 
-  // Find any columns not in our standard set
   var extraCols = [];
-  headers.forEach(function(h, i) {
-    if (h && STANDARD_COLS.indexOf(h) === -1) {
-      extraCols.push({ index: i, header: h });
+  
+  for (var i = 0; i < lastCol; i++) {
+    var h = headers[i];
+    if (!h || STANDARD_COLS.indexOf(h) === -1) {
+       extraCols.push({ index: i, header: h || ('Col ' + String.fromCharCode(65 + i)) });
     }
-  });
+  }
 
   Logger.log('Extra columns to import: ' + extraCols.map(function(c) { return c.header; }).join(', '));
 

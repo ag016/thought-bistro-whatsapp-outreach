@@ -143,6 +143,16 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     });
   };
 
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!lead) return;
+    setLead(prev => prev ? { ...prev, metadata: { ...prev.metadata, lead_status: newStatus } } : prev);
+    await fetch('/api/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, newStatus })
+    });
+  };
+
   const handleAddNote = async () => {
     if (!newNote.trim() || !lead) return;
     setAddingNote(true);
@@ -271,9 +281,21 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                 {m.clinic_type     && <InfoField label="Clinic Type"   value={m.clinic_type} />}
                 {m.treatment_price && <InfoField label="Avg Price"      value={`Rs. ${m.treatment_price}`} />}
                 {m.platform        && <InfoField label="Platform"       value={m.platform} />}
-                {m.lead_status     && <InfoField label="Sheet Status"   value={m.lead_status} />}
                 {m.campaign_name   && <InfoField label="Campaign"       value={m.campaign_name} />}
                 {m.ad_name         && <InfoField label="Ad"             value={m.ad_name} />}
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 10, color: '#3a5a3a', marginBottom: 6, fontWeight: 600 }}>SHEET STATUS (QUALIFICATION)</div>
+                <select 
+                  value={m.lead_status || 'CREATED'} 
+                  onChange={e => handleUpdateStatus(e.target.value)}
+                  style={{ background: '#0a150a', border: '1px solid #1a2e1a', color: '#ecfdf5', borderRadius: 8, padding: '8px 12px', fontSize: 13, width: '100%', cursor: 'pointer', appearance: 'none' }}
+                >
+                  <option value="CREATED">CREATED</option>
+                  <option value="Qualified">Qualified</option>
+                  <option value="Not Qualified">Not Qualified</option>
+                </select>
               </div>
 
               <InfoField label="Submitted" value={fmt(m.india_time || lead.created_at)} fullWidth />
