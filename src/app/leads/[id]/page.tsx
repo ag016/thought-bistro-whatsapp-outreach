@@ -290,6 +290,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   };
 
   const handleDeleteNote = async (noteText: string) => {
+    if (!lead) return;
     if (!confirm('Delete this note?')) return;
     try {
       const res = await fetch(`/api/notes?leadId=${encodeURIComponent(lead.id)}&noteText=${encodeURIComponent(noteText)}`, {
