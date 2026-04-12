@@ -278,10 +278,14 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
   const m           = lead.metadata;
 
   return (
-    <div className="animate-fade-in" style={{ background: '#0d1a0d', border: `1px solid ${lead.status === 'paused' ? '#2d1f0a' : canSend ? '#25D36635' : '#1a2e1a'}`, borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: canSend ? '0 0 28px rgba(37,211,102,0.07)' : 'none' }}>
+    <div
+      className="animate-fade-in"
+      onClick={() => router.push(`/leads/${lead.id}`)}
+      style={{ cursor: 'pointer', background: '#0d1a0d', border: `1px solid ${lead.status === 'paused' ? '#2d1f0a' : canSend ? '#25D36635' : '#1a2e1a'}`, borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: canSend ? '0 0 28px rgba(37,211,102,0.07)' : 'none', transition: 'transform 0.2s, box-shadow 0.2s' }}
+    >
 
-      {/* ── Card Header — click anywhere to open detail ── */}
-      <div onClick={() => router.push(`/leads/${lead.id}`)} style={{ padding: '16px 16px 12px', cursor: 'pointer' }}>
+      {/* ── Card Header ── */}
+      <div style={{ padding: '16px 16px 12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
           <div style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
             <div style={{ fontWeight: 800, fontSize: 16, color: '#ecfdf5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.full_name || 'Unknown Lead'}</div>
@@ -367,17 +371,22 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
         ) : (
           <div style={{ display: 'flex', gap: 8 }}>
             {awaitingSent ? (
-              <button onClick={() => onMarkSent(lead.id)} style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: '2px solid #25D366', background: 'rgba(37,211,102,0.10)', color: '#25D366', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onMarkSent(lead.id); }} 
+                style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: '2px solid #25D366', background: 'rgba(37,211,102,0.10)', color: '#25D366', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
                 ✓ Mark as Sent
               </button>
             ) : (
               <a href={canSend ? waLink : undefined} target={canSend ? '_blank' : undefined} rel="noopener noreferrer"
-                onClick={() => canSend && onSend(lead.id)}
+                onClick={(e) => { e.stopPropagation(); canSend && onSend(lead.id); }}
                 style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', textAlign: 'center', textDecoration: 'none', display: 'block', background: canSend ? '#25D366' : '#1a2e1a', color: canSend ? '#060d06' : '#3a5a3a', fontWeight: 700, fontSize: 13, cursor: canSend ? 'pointer' : 'default' }}>
                 {canSend ? `Send Msg ${stepData.step_number} →` : lead.status === 'paused' ? '⏸ Paused' : `Wait · Day ${stepData.day_offset}`}
               </a>
             )}
-            <button onClick={() => onPause(lead.id)} title={lead.status === 'paused' ? 'Resume' : 'Pause'} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #1a2e1a', background: lead.status === 'paused' ? 'rgba(37,211,102,0.1)' : '#1a2e1a', color: lead.status === 'paused' ? '#25D366' : '#5a8a5a', fontSize: 18, cursor: 'pointer' }}>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onPause(lead.id); }} 
+              title={lead.status === 'paused' ? 'Resume' : 'Pause'} 
+              style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #1a2e1a', background: lead.status === 'paused' ? 'rgba(37,211,102,0.1)' : '#1a2e1a', color: lead.status === 'paused' ? '#25D366' : '#5a8a5a', fontSize: 18, cursor: 'pointer' }}>
               {lead.status === 'paused' ? '▶' : '⏸'}
             </button>
           </div>

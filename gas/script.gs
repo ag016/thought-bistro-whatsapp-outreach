@@ -18,7 +18,7 @@
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 
-var WEBHOOK_URL    = 'https://YOUR_APP.vercel.app/api/webhook';
+var WEBHOOK_URL    = 'https://thought-bistro-whatsapp-outreach.vercel.app/api/webhook';
 var WEBHOOK_SECRET = 'tb_secret_2024';
 
 var NURTURE_TAB = 'Nurture';
