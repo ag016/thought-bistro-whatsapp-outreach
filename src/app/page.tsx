@@ -230,7 +230,7 @@ export default function App() {
 
         {/* ── API Error ── */}
         {apiError && (
-          <div style={{ background: '#1a0a0a', border: '1px solid #5a1a1a', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#ff8080' }}>
+          <div style={{ background: 'color-mix(in srgb, var(--surface-color), var(--danger-color) 15%)', border: '1px solid var(--danger-color)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: 'var(--danger-color)' }}>
             <strong>⚠️ Error:</strong> {apiError}
           </div>
         )}
@@ -246,8 +246,8 @@ export default function App() {
 
         {/* ── Lead Grid ── */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: '#5a8a5a' }}>
-            <div style={{ width: 32, height: 32, border: '2px solid #25D366', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+          <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--accent-color)' }}>
+            <div style={{ width: 32, height: 32, border: '2px solid var(--accent-color)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
             Loading leads from Google Sheets…
           </div>
         ) : displayLeads.length === 0 ? (
@@ -465,15 +465,15 @@ function StatCard({ label, value, accent = false }: { label: string; value: numb
 }
 
 function StatusBadge({ status, isDue, isCompleted }: { status: string; isDue: boolean; isCompleted: boolean }) {
-  if (status === 'paused') return <span style={{ padding: '4px 10px', borderRadius: 20, background: '#2d1f0a', color: '#f59e0b', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>⏸ Paused</span>;
-  if (isCompleted)         return <span style={{ padding: '4px 10px', borderRadius: 20, background: '#0d1a2e', color: '#60a5fa', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>✓ Done</span>;
+  if (status === 'paused') return <span style={{ padding: '4px 10px', borderRadius: 20, background: 'color-mix(in srgb, var(--surface-color), var(--warning-color) 20%)', color: 'var(--warning-color)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>⏸ Paused</span>;
+  if (isCompleted)         return <span style={{ padding: '4px 10px', borderRadius: 20, background: 'color-mix(in srgb, var(--surface-color), var(--info-color) 20%)', color: 'var(--info-color)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>✓ Done</span>;
   if (isDue)               return <span style={{ padding: '4px 10px', borderRadius: 20, background: 'color-mix(in srgb, var(--accent-color), black 40%)', color: 'var(--accent-color)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>● Due</span>;
   return                   <span style={{ padding: '4px 10px', borderRadius: 20, background: 'var(--border-color)', color: 'var(--text-color)', opacity: 0.5, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>Pending</span>;
 }
 
 function EmptyState({ tab }: { tab: string }) {
   return (
-    <div style={{ textAlign: 'center', padding: '80px 0', color: '#5a8a5a' }}>
+    <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--accent-color)' }}>
       <div style={{ fontSize: 52, marginBottom: 14 }}>{tab === 'due' ? '🎉' : '📭'}</div>
       <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-color)', marginBottom: 6 }}>{tab === 'due' ? 'All caught up!' : 'No leads yet'}</div>
       <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6 }}>{tab === 'due' ? 'No leads due for messaging today.' : 'Press Sync to load leads from Google Sheets.'}</div>
@@ -495,10 +495,10 @@ function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: bool
           <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6, marginTop: 4 }}>Lead Machine</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginBottom: 8, animation: shake ? 'shake 0.5s ease-in-out' : 'none' }}>
-          {[0,1,2,3,4,5].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? 'var(--accent-color)' : 'transparent', border: `2px solid ${shake ? '#ef4444' : i < pin.length ? 'var(--accent-color)' : 'var(--border-color)'}`, transition: 'all 0.15s', boxShadow: i < pin.length ? `0 0 8px color-mix(in srgb, var(--accent-color), transparent 60%)` : 'none' }} />)}
+          {[0,1,2,3,4,5].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? 'var(--accent-color)' : 'transparent', border: `2px solid ${shake ? 'var(--danger-color)' : i < pin.length ? 'var(--accent-color)' : 'var(--border-color)'}`, transition: 'all 0.15s', boxShadow: i < pin.length ? `0 0 8px color-mix(in srgb, var(--accent-color), transparent 60%)` : 'none' }} />)}
         </div>
         <div style={{ height: 22, textAlign: 'center', marginBottom: 20 }}>
-          {shake && <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 600 }}>Incorrect PIN. Try again.</span>}
+          {shake && <span style={{ color: 'var(--danger-color)', fontSize: 12, fontWeight: 600 }}>Incorrect PIN. Try again.</span>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {NUMPAD.flat().map((d, i) => (

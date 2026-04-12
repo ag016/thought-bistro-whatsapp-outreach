@@ -9,6 +9,10 @@
     --accent-color: #10B981;
     --text-color: #F8FAFC;
     --border-color: rgba(255, 255, 255, 0.1);
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #3b82f6;
+    --purple-color: #a855f7;
   }
 
   .theme-midnight {
@@ -42,7 +46,9 @@
     min-height: 100vh;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    line-height: 1.6;
+    font-weight: 400;
   }
 
   ::-webkit-scrollbar {
@@ -82,4 +88,11 @@
 
 .animate-fade-in {
   animation: fadeIn 0.25s ease-out forwards;
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
 }

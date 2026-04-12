@@ -55,7 +55,7 @@ export default function SettingsPage() {
               {session && (
                 <button 
                   onClick={() => signOut({ callbackUrl: '/' })} 
-                  style={{ padding: '6px 12px', borderRadius: 8, background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  style={{ padding: '6px 12px', borderRadius: 8, background: 'transparent', border: '1px solid var(--danger-color)', color: 'var(--danger-color)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                   Disconnect
                 </button>
               )}

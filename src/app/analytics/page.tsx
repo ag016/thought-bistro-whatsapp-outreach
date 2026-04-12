@@ -114,8 +114,8 @@ export default function AnalyticsPage() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <TimelineRow label="Last 24 Hours" value={stats.day} color="var(--accent-color)" />
-            <TimelineRow label="Last 7 Days" value={stats.week} color="#3b82f6" />
-            <TimelineRow label="Last 30 Days" value={stats.month} color="#a855f7" />
+            <TimelineRow label="Last 7 Days" value={stats.week} color="var(--info-color)" />
+            <TimelineRow label="Last 30 Days" value={stats.month} color="var(--purple-color)" />
           </div>
         </div>
       </div>

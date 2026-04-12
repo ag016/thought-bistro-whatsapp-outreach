@@ -3,22 +3,30 @@
     "project/src/app/leads/[id]/page.tsx": {
       "modifiedRanges": [
         {
-          "start": 45,
-          "end": 99
+          "start": 1,
+          "end": 624
         }
       ],
-      "importsChanged": false,
-      "lastEdit": "2026-04-12T10:49:07.448Z"
+      "importsChanged": true,
+      "lastEdit": "2026-04-12T12:16:40.788Z"
     },
     "project/src/app/settings/page.tsx": {
       "modifiedRanges": [
         {
           "start": 1,
           "end": 87
+        },
+        {
+          "start": 90,
+          "end": 91
+        },
+        {
+          "start": 97,
+          "end": 99
         }
       ],
       "importsChanged": true,
-      "lastEdit": "2026-04-12T10:44:05.112Z"
+      "lastEdit": "2026-04-12T12:27:09.772Z"
     },
     "project/src/app/analytics/page.tsx": {
       "modifiedRanges": [
@@ -28,17 +36,17 @@
         }
       ],
       "importsChanged": true,
-      "lastEdit": "2026-04-12T10:44:56.371Z"
+      "lastEdit": "2026-04-12T12:19:40.082Z"
     },
     "project/src/app/page.tsx": {
       "modifiedRanges": [
         {
-          "start": 87,
-          "end": 87
+          "start": 1,
+          "end": 521
         }
       ],
-      "importsChanged": false,
-      "lastEdit": "2026-04-12T10:54:55.486Z"
+      "importsChanged": true,
+      "lastEdit": "2026-04-12T12:05:52.720Z"
     },
     "project/src/app/api/calendar/route.ts": {
       "modifiedRanges": [
@@ -59,9 +67,19 @@
       ],
       "importsChanged": false,
       "lastEdit": "2026-04-12T11:11:47.753Z"
+    },
+    "project/src/lib/theme.ts": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 32
+        }
+      ],
+      "importsChanged": false,
+      "lastEdit": "2026-04-12T11:39:58.786Z"
     }
   },
   "turnCycles": 0,
   "maxCycles": 3,
-  "lastUpdated": "2026-04-12T11:22:12.035Z"
+  "lastUpdated": "2026-04-12T12:27:09.772Z"
 }

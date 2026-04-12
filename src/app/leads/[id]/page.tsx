@@ -518,20 +518,20 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
           {/* ── RIGHT PANEL: Action Center ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="pane-card">
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#eab308', letterSpacing: '0.08em', marginBottom: 14 }}>NOTES</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning-color)', letterSpacing: '0.08em', marginBottom: 14 }}>NOTES</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16, maxHeight: 300, overflowY: 'auto' }}>
                 {notes.length === 0 ? (
                   <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.4, fontStyle: 'italic' }}>No notes yet.</div>
                 ) : (
                   notes.map((note, i) => (
-                    <div key={i} style={{ background: 'rgba(234, 179, 8, 0.05)', border: '1px solid rgba(234, 179, 8, 0.2)', borderRadius: 12, padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div key={i} style={{ background: 'color-mix(in srgb, var(--surface-color), var(--warning-color) 10%)', border: '1px solid color-mix(in srgb, var(--border-color), var(--warning-color) 30%)', borderRadius: 12, padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
-                        <div style={{ fontSize: 13, color: '#fef08a', lineHeight: 1.5, marginBottom: 6 }}>{note.note_text}</div>
+                        <div style={{ fontSize: 13, color: 'var(--warning-color)', lineHeight: 1.5, marginBottom: 6 }}>{note.note_text}</div>
                         <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5 }}>
                           {note.source === 'imported' ? 'Imported from Sheet' : fmt(note.created_at)}
                         </div>
                       </div>
-                      <button onClick={() => handleDeleteNote(note.note_text)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>×</button>
+                      <button onClick={() => handleDeleteNote(note.note_text)} style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>×</button>
                     </div>
                   ))
                 )}
@@ -550,24 +550,24 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                   onClick={handleAddNote} 
                   disabled={addingNote || !newNote.trim()}
                   className="btn-primary"
-                  style={{ padding: '0 16px', background: '#eab308', color: '#422006' }}>
+                  style={{ padding: '0 16px', background: 'var(--warning-color)', color: 'var(--bg-color)' }}>
                   Add
                 </button>
               </div>
             </div>
 
             <div className="pane-card">
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', letterSpacing: '0.08em', marginBottom: 14 }}>BOOK APPOINTMENT</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-color)', letterSpacing: '0.08em', marginBottom: 14 }}>BOOK APPOINTMENT</div>
               {session && (session as any).accessToken ? (
                 <>
                   <input type="text" placeholder="Event Title (e.g. Discovery Call)" value={eventTitle} onChange={e => setEventTitle(e.target.value)} className="input-field" style={{ width: '100%', marginBottom: 12 }} />
                   <input type="text" placeholder="Appointment Note" value={eventNote} onChange={e => setEventNote(e.target.value)} className="input-field" style={{ width: '100%', marginBottom: 12 }} />
                   <input type="datetime-local" value={callDate} onChange={e => setCallDate(e.target.value)} className="input-field" style={{ width: '100%', marginBottom: 12, colorScheme: 'dark' }} />
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={handleBookCall} disabled={booking || !callDate} className="btn-primary" style={{ flex: 1, padding: '12px', background: booking ? '#1e3a8a' : '#2563eb', color: '#fff' }}>
+                    <button onClick={handleBookCall} disabled={booking || !callDate} className="btn-primary" style={{ flex: 1, padding: '12px', background: booking ? 'color-mix(in srgb, var(--info-color), black 40%)' : 'var(--info-color)', color: 'var(--bg-color)' }}>
                       {booking ? 'Scheduling...' : bookSuccess ? '✓ ' + bookSuccess : 'Add to Google Calendar'}
                     </button>
-                    <button onClick={handleDeleteEvent} style={{ padding: '12px', borderRadius: 10, background: '#450a0a', color: '#f87171', border: '1px solid #7f1d1d', cursor: 'pointer', fontSize: 18, transition: 'all 0.2s ease' }}>🗑</button>
+                    <button onClick={handleDeleteEvent} style={{ padding: '12px', borderRadius: 10, background: 'color-mix(in srgb, var(--surface-color), var(--danger-color) 20%)', color: 'var(--danger-color)', border: '1px solid var(--danger-color)', cursor: 'pointer', fontSize: 18, transition: 'all 0.2s ease' }}>🗑</button>
                   </div>
                 </>
               ) : (
