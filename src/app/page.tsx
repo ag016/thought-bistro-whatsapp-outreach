@@ -7,6 +7,7 @@ import { useSession, signIn } from 'next-auth/react';
 import ViewSwitcher from '@/components/Dashboard/ViewSwitcher';
 import KanbanBoard from '@/components/Dashboard/KanbanBoard';
 import LeadList from '@/components/Dashboard/LeadList';
+import { Skeleton } from '@/components/UI/Skeleton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -258,9 +259,18 @@ export default function App() {
 
         {/* ── Lead View ── */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--accent-color)' }}>
-            <div style={{ width: 32, height: 32, border: '2px solid var(--accent-color)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-            Loading leads from Google Sheets…
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="stats-grid">
+              <Skeleton variant="rect" height={70} />
+              <Skeleton variant="rect" height={70} />
+              <Skeleton variant="rect" height={70} />
+              <Skeleton variant="rect" height={70} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} variant="rect" height={80} />
+              ))}
+            </div>
           </div>
         ) : displayLeads.length === 0 ? (
           <EmptyState tab={tab} />

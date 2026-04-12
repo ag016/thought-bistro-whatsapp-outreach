@@ -112,7 +112,7 @@ function ThemeOption({ label, color, value, currentTheme, onClick }: { label: st
         alignItems: 'center', 
         gap: 8, 
         cursor: 'pointer',
-        transition: 'transform 0.2s ease'
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
       }}
       onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
       onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
