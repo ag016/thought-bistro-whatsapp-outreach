@@ -95,25 +95,25 @@ export default function AnalyticsPage() {
   if (status === 'loading' || loading) return <LoadingScreen />;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#060d06', color: '#ecfdf5', padding: '24px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-color)', padding: '24px' }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-          <button onClick={() => router.push('/')} style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: 10, color: '#25D366', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>←</button>
+          <button onClick={() => router.push('/')} style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>←</button>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Analytics</h1>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 32 }}>
           <StatCard label="Total Leads" value={stats.total} />
-          <StatCard label="Qualified" value={stats.qualified} accent="#eab308" />
-          <StatCard label="Msgs Sent" value={stats.messagesSent} accent="#25D366" />
-          <StatCard label="Conv. Rate" value={stats.total ? Math.round((stats.qualified / stats.total) * 100) + '%' : '0%'} />
+          <StatCard label="Qualified" value={stats.qualified} glow />
+          <StatCard label="Msgs Sent" value={stats.messagesSent} accent="var(--accent-color)" />
+          <StatCard label="Conv. Rate" value={stats.total ? Math.round((stats.qualified / stats.total) * 100) + '%' : '0%'} glow />
         </div>
 
-        <div style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: 24, padding: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#25D366', letterSpacing: '0.08em', marginBottom: 20 }}>ACQUISITION TIMELINE</div>
+        <div style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 24, padding: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 20 }}>ACQUISITION TIMELINE</div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <TimelineRow label="Last 24 Hours" value={stats.day} color="#25D366" />
+            <TimelineRow label="Last 24 Hours" value={stats.day} color="var(--accent-color)" />
             <TimelineRow label="Last 7 Days" value={stats.week} color="#3b82f6" />
             <TimelineRow label="Last 30 Days" value={stats.month} color="#a855f7" />
           </div>
@@ -123,11 +123,19 @@ export default function AnalyticsPage() {
   );
 }
 
-function StatCard({ label, value, accent = '#ecfdf5' }: { label: string; value: string | number; accent?: string }) {
+function StatCard({ label, value, accent = 'var(--text-color)', glow = false }: { label: string; value: string | number; accent?: string; glow?: boolean }) {
   return (
-    <div style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: 20, padding: '20px', textAlign: 'center' }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: '#5a8a5a', marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: accent }}>{value}</div>
+    <div style={{ 
+      background: 'var(--surface-color)', 
+      border: '1px solid var(--border-color)', 
+      borderRadius: 20, 
+      padding: '20px', 
+      textAlign: 'center',
+      boxShadow: glow ? '0 0 20px var(--accent-color)30' : 'none',
+      borderColor: glow ? 'var(--accent-color)' : 'var(--border-color)'
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-color)', opacity: 0.6, marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: glow ? 'var(--accent-color)' : accent }}>{value}</div>
     </div>
   );
 }
@@ -136,8 +144,8 @@ function TimelineRow({ label, value, color }: { label: string; value: number; co
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
       <div style={{ width: 12, height: 12, borderRadius: '50%', background: color, boxShadow: `0 0 10px ${color}60` }} />
-      <div style={{ flex: 1, fontSize: 14, color: '#8ab48a' }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 800, color: '#ecfdf5' }}>{value}</div>
+      <div style={{ flex: 1, fontSize: 14, color: 'var(--text-color)', opacity: 0.7 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-color)' }}>{value}</div>
     </div>
   );
 }
@@ -154,8 +162,8 @@ function parseSheetDate(str: string) {
 
 function LoadingScreen() {
   return (
-    <div style={{ minHeight: '100vh', background: '#060d06', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5a8a5a' }}>
-      <div style={{ width: 32, height: 32, border: '2px solid #25D366', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color)' }}>
+      <div style={{ width: 32, height: 32, border: '2px solid var(--accent-color)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
