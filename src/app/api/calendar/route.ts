@@ -28,7 +28,14 @@ export async function POST(req: NextRequest) {
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-    const startDate = new Date(dateStr);
+    // The dateStr from <input type="datetime-local"> is local time (without timezone).
+    // Since the CRM is for Indian clinics, we explicitly treat this as Asia/Kolkata (IST, +05:30).
+    const istOffset = '+05:30';
+    const dateWithTz = dateStr.includes('Z') || dateStr.includes('+') || dateStr.includes('-') 
+      ? dateStr 
+      : `${dateStr}:00${istOffset}`;
+
+    const startDate = new Date(dateWithTz);
     const endDate = new Date(startDate.getTime() + 30 * 60000); // 30 minutes later
 
     const event = {
