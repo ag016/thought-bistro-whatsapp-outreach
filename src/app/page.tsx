@@ -228,7 +228,8 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ padding: '24px 24px 0', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
+      {/* Full width container instead of maxWidth 1600px */}
+      <div style={{ padding: '32px 32px 0', width: '100%' }}>
 
         {/* ── Stats Bar ── */}
         <div className="stats-grid" style={{ marginBottom: 20 }}>
@@ -246,14 +247,39 @@ export default function App() {
         )}
 
         {/* ── Tabs ── */}
-        <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 14, padding: 4, maxWidth: 400 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          {/* Sliding Pill for Due / All */}
+          <div style={{
+            position: 'relative',
+            display: 'flex',
+            background: 'color-mix(in srgb, var(--border-color), transparent 50%)',
+            borderRadius: 100,
+            padding: 4,
+            width: 320,
+            gap: 4
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: 4, bottom: 4, left: 4,
+              width: 'calc(50% - 6px)',
+              background: 'var(--surface-color)',
+              borderRadius: 100,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.05)',
+              transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              transform: tab === 'all' ? 'translateX(calc(100% + 4px))' : 'translateX(0)',
+              zIndex: 0
+            }} />
             {(['due', 'all'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)} className="transition-enterprise" style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.2s', background: tab === t ? 'var(--accent-color)' : 'transparent', color: tab === t ? 'var(--bg-color)' : 'var(--text-color)', opacity: tab === t ? 1 : 0.5 }}>
+              <button key={t} onClick={() => setTab(t)} className="transition-enterprise" style={{ 
+                flex: 1, padding: '10px 0', borderRadius: 100, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'color 0.3s', background: 'transparent',
+                color: tab === t ? 'var(--text-color)' : 'color-mix(in srgb, var(--text-color), transparent 40%)',
+                position: 'relative', zIndex: 1 
+              }}>
                 {t === 'due' ? `Due Today (${dueLeads.length})` : `All Leads (${leads.length})`}
               </button>
             ))}
           </div>
+          
           <ViewSwitcher view={view} setView={setView} />
         </div>
 
