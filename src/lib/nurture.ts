@@ -4,7 +4,7 @@ export const NURTURE_SEQUENCE: NurtureStep[] = [
   {
     step_number: 1,
     day_offset: 1,
-    message_text: `Hey Doctor 👋\n\nBased on your answers, [you're dealing with something a lot of clinics who work with us have dealt with: generating leads but them not answering your calls.]\n\nQuick context on who we are: we're Thought Bistro, and we obsess over one thing only — getting qualified patients into your clinic. Not clicks. Not impressions. Actual people who show up ready to consult.\n\nWe're so confident in this that we guarantee you'll get enough quality leads to make your money back in Month 1 — or we lose 50% of our fee.\n\nI'd love to show you how the system works. Free for a quick 5-minute call tomorrow?`
+    message_text: `Hey Doctor 👋\n\nBased on your answers, you're dealing with something a lot of clinics who work with us have dealt with: generating leads but them not answering your calls.\n\nQuick context on who we are: we're Thought Bistro, and we obsess over one thing only — getting qualified patients into your clinic. Not clicks. Not impressions. Actual people who show up ready to consult.\n\nWe're so confident in this that we guarantee you'll get enough quality leads to make your money back in Month 1 — or we lose 50% of our fee.\n\nI'd love to show you how the system works. Free for a quick 5-minute call tomorrow?`
   },
   {
     step_number: 2,
