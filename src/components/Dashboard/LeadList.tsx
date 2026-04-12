@@ -7,7 +7,6 @@ import { Lead } from '@/types';
 interface LeadListProps {
   leads: Lead[];
   onPause: (id: string) => void;
-  onSend: (id: string) => void;
 }
 
 function formatDate(str: string | null) {
@@ -21,7 +20,7 @@ function formatDate(str: string | null) {
   }
 }
 
-export default function LeadList({ leads, onPause, onSend }: LeadListProps) {
+export default function LeadList({ leads, onPause }: LeadListProps) {
   const router = useRouter();
   const [tagFilter, setTagFilter] = useState('');
   
@@ -92,7 +91,6 @@ export default function LeadList({ leads, onPause, onSend }: LeadListProps) {
             <th>Progress</th>
             <th>Last Contact</th>
             <th>Qualification</th>
-            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -141,27 +139,6 @@ export default function LeadList({ leads, onPause, onSend }: LeadListProps) {
               <td style={{ opacity: 0.7 }}>{formatDate(lead.last_sent_at)}</td>
               <td>
                 <span style={{ fontSize: 12, opacity: 0.8 }}>{lead.metadata?.lead_status || 'Unknown'}</span>
-              </td>
-              <td>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onSend(lead.id); }}
-                  className="transition-enterprise"
-                  style={{ 
-                    padding: '6px 12px', 
-                    borderRadius: 8, 
-                    background: 'var(--accent-color)', 
-                    color: 'var(--bg-color)', 
-                    fontSize: 11, 
-                    fontWeight: 700, 
-                    border: 'none', 
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
-                  onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
-                >
-                  Quick Send
-                </button>
               </td>
             </tr>
           ))}

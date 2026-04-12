@@ -51,12 +51,17 @@ const MESSAGE_TEMPLATES = [
   {
     id: 'starter',
     name: 'Starter Capacity',
-    text: `Hi [NAME], great speaking with you! \n\nI'm excited to get started on building your patient acquisition engine with our Starter Capacity setup (₹60,000/campaign). \n\nOur singular focus with this build is *Lead Quality*. We don't chase vanity metrics, fluff, or empty clicks; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book. For this campaign, we handle all the heavy lifting to make that happen, which includes:\n* 1 Dedicated Ad Set\n* 2 Authority Video Ads\n* Complete Tech Setup & Lead Forms\nNote: Our ongoing support fee of ₹15,000/month per campaign is completely waived for your first month.\n\nSince your Skin Tightening Treatment using the Hifu Laser starts at ₹25,000, we are backing this with our strict Skin-in-the-Game Guarantee. As long as you allocate a minimum of ₹30,000 to ad spend for the month, we guarantee to deliver at least 3 highly qualified leads in your first month to fully justify and cover your investment with us. \n\nPlease note that this guarantee is adjusted based on the offer you take up. For example, in case you take our Growth Capacity offer (₹1,75,000/campaign), then on a minimum ad spend of ₹1.5L for the month, we will guarantee you at least 7 qualified leads to cover that investment.\n\nIf we miss the mark on your chosen tier: \nYou either do not owe us the final 50% (if you choose the split payment), or we will refund 50% of your investment (if you pay upfront).\n\nFor a full breakdown of the deliverables and our other tiers, you can review our pricing page here: https://www.thethoughtbistro.com/pricing\n\nThink over whether you'd prefer to proceed with the 15% discounted upfront payment of ₹51,000 or the 50/50 split of ₹30,000 now and ₹30,000 on launch, and we can finalize everything during our meeting tomorrow!\n-Vishrut\n\nP.S. Since we are already guaranteeing the baseline to cover your investment, the only real question left to consider is: do you want more high-quality leads, and exactly how many can your clinic's team realistically handle?`
+    text: `Hi [NAME], great speaking with you!\n\nI'm excited to get started on building your patient acquisition engine with our Starter Capacity setup (₹60,000/campaign) tailored specifically for your [CLINIC_TYPE].\n\nOur singular focus with this build is *Lead Quality*. We don't chase vanity metrics, fluff, or empty clicks; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book. For this campaign, we handle all the heavy lifting to make that happen, which includes:\n* 1 Dedicated Ad Set\n* 2 Authority Video Ads\n* Complete Tech Setup & Lead Forms\nNote: Our ongoing support fee of ₹15,000/month per campaign is completely waived for your first month.\n\nWe guarantee you will get enough qualified leads in month one to make your money back—or we refund 50% of your total investment or waive the second half. \n\nFor a full breakdown of the deliverables and our other tiers, review our pricing page: https://www.thethoughtbistro.com/pricing\n\nThink over whether you'd prefer to proceed with the 15% discounted upfront payment of ₹51,000 or the 50/50 split of ₹30,000 now and ₹30,000 on launch, and we can finalize everything during our meeting tomorrow!\n-Vishrut\n\nP.S. Since we are already guaranteeing the baseline to cover your investment, the only real question left to consider is: do you want more high-quality leads, and exactly how many can your clinic's team realistically handle?`
   },
   {
     id: 'growth',
     name: 'Growth Capacity',
-    text: `Hi [NAME], great speaking with you!\n\nI'm excited to get started on building your patient acquisition engine with our Growth Capacity setup (₹1,75,000/campaign). \n\nOur singular focus is Lead Quality. We don't chase vanity metrics; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book. \n\nFor this build, we handle all the heavy lifting, which includes:\n✅ 1 Dedicated Ad Set\n✅ 7 Research-Backed Authority Videos (Using a data-driven framework to ensure maximum trust and conversion)\n✅ Complete Tech Setup & Lead Forms\n\nOngoing Management:\nTo ensure the system stays optimized and leads keep flowing, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁\n\n🛡️ The 'Skin-in-the-Game' Guarantee:\nWe are backing this with a strict performance guarantee. Given that a qualified lead represents an average of ₹40k in potential business, just 5 qualified leads would generate ₹2,00,000—fully recovering your investment and putting you in the green. \n\nTherefore, we guarantee you at least 5 highly qualified leads to justify this investment. If we miss that mark: \n👉 You either do not owe us the final 50% (if you choose the split payment), or we will refund 50% of your investment (if you pay upfront).\n\n💰 Investment & Terms:\n(All prices are exclusive of GST)\n\n1️⃣ Full Upfront: ₹1,48,750 (15% discount applied)\n2️⃣ Split Payment: ₹87,500 now and ₹87,500 on launch\n\nYou can view the full breakdown of deliverables and our other tiers on our pricing page here: https://www.thethoughtbistro.com/pricing\n\nThink over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊\n\n-Vishrut\n\nP.S. Since we are guaranteeing the baseline to cover your investment, the only real question left is: do you want more high-quality leads, and exactly how many can your clinic's team realistically handle? 📈`
+    text: `Hi [NAME], great speaking with you!\n\nI'm excited to get started on building your patient acquisition engine with our Growth Capacity setup (₹1,75,000/campaign) designed for [CLINIC_TYPE].\n\nOur singular focus is Lead Quality. We don't chase vanity metrics; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book. \n\nFor this build, we handle all the heavy lifting, which includes:\n✅ 1 Dedicated Ad Set\n✅ 7 Research-Backed Authority Videos\n✅ Complete Tech Setup & Lead Forms\n\nOngoing Management:\nTo ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁\n\n🛡️ The 'Skin-in-the-Game' Guarantee:\nWe are backing this with a strict performance guarantee. We guarantee you will get enough qualified leads in month one to make your money back—or we refund 50% of your total investment or waive the second half.\n\n💰 Investment & Terms:\n(All prices are exclusive of GST)\n\n1️⃣ Full Upfront: ₹1,48,750 (15% discount applied)\n2️⃣ Split Payment: ₹87,500 now and ₹87,500 on launch\n\nYou can view the full breakdown of deliverables here: https://www.thethoughtbistro.com/pricing\n\nThink over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊\n\n-Vishrut`
+  },
+  {
+    id: 'domination',
+    name: 'Market Domination',
+    text: `Hi [NAME], great speaking with you!\n\nI'm excited to present our Market Domination setup for your [CLINIC_TYPE].\n\nThis is built for clinics scaling ad budgets safely with sales teams. \n\nDeliverables:\n🔥 2 Targeted Ad Sets (Different Avatars)\n🔥 14 Total Video Ads (7 per Ad Set)\n🔥 Split Lead Forms by Avatar\n🔥 Dual CAPI config for rapid scaling\n\nOngoing Management:\n₹15,000/month per campaign. 1st Month Included Free.\n\n🛡️ The First-Month Clinic Guarantee:\nWe guarantee you will get enough qualified leads in month one to make your money back—or we refund 50% of your total investment with us or do not pay us the second half.\n\nReview full details here: https://www.thethoughtbistro.com/pricing\n\nLet's dominate your local market. \n\n-Vishrut`
   }
 ];
 
@@ -329,27 +334,9 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
       </div>
 
       <div style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
-          <button 
-            onClick={() => setLeftCollapsed(!leftCollapsed)} 
-            className="transition-enterprise"
-            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-color)', background: leftCollapsed ? 'var(--accent-color)' : 'var(--surface-color)', color: leftCollapsed ? 'var(--bg-color)' : 'var(--text-color)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-          >
-            {leftCollapsed ? 'Show Info' : 'Hide Info'}
-          </button>
-          <button 
-            onClick={() => setRightCollapsed(!rightCollapsed)} 
-            className="transition-enterprise"
-            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-color)', background: rightCollapsed ? 'var(--accent-color)' : 'var(--surface-color)', color: rightCollapsed ? 'var(--bg-color)' : 'var(--text-color)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-          >
-            {rightCollapsed ? 'Show Actions' : 'Hide Actions'}
-          </button>
-        </div>
-
         <div className="detail-grid">
 
           {/* --- LEFT PANEL: Lead Info & Identity --- */}
-          {!leftCollapsed && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div className="pane-card">
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 14 }}>NURTURE PROGRESS</div>
@@ -424,7 +411,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                 )}
               </div>
             </div>
-          )}
 
           {/* --- CENTER PANEL: Message Timeline --- */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -453,6 +439,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                         <MessageBubble 
                           stepNumber={step.step_number}
                           messageText={step.message_text}
+                          variants={step.variants}
                           hasBeenSent={hasBeenSent}
                           sentTimestamp={sentTimestamp}
                           isCurrentTarget={isCurrentTarget}
@@ -484,7 +471,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
           </div>
 
           {/* --- RIGHT PANEL: Action Center --- */}
-          {!rightCollapsed && (
             <ActionCenter 
               lead={lead}
               notes={notes}
@@ -522,7 +508,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
               onDeleteEvent={handleDeleteEvent}
               templates={MESSAGE_TEMPLATES}
             />
-          )}
 
         </div>
       </div>

@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { MessageVariant } from '@/types';
 
 interface MessageBubbleProps {
   stepNumber: number;
   messageText: string;
+  variants?: MessageVariant[];
   hasBeenSent: boolean;
   sentTimestamp?: string;
   isCurrentTarget: boolean;
@@ -16,6 +18,7 @@ interface MessageBubbleProps {
 export default function MessageBubble({
   stepNumber,
   messageText,
+  variants,
   hasBeenSent,
   sentTimestamp,
   isCurrentTarget,
@@ -24,20 +27,27 @@ export default function MessageBubble({
   fmtDate
 }: MessageBubbleProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [text, setText] = useState(messageText);
+  const [selectedVariant, setSelectedVariant] = useState<string>(variants?.[0]?.id || 'default');
+  const [text, setText] = useState(() => variants ? variants[0].text : messageText);
 
   const generateWhatsAppLink = (phone: string, message: string) => {
     return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   };
 
+  const handleVariantClick = (e: React.MouseEvent, vId: string, vText: string) => {
+    e.stopPropagation();
+    setSelectedVariant(vId);
+    setText(vText);
+  };
+
   return (
     <div 
-      className={`flex flex-col gap-2 p-3 rounded-2xl transition-enterprise cursor-pointer hover:scale-[1.01] ${
+      className={`flex flex-col gap-2 p-3 rounded-2xl transition-enterprise cursor-pointer ${
         isExpanded 
           ? 'bg-slate-800 border-2 border-emerald-500 shadow-lg ring-1 ring-emerald-500/20' 
           : isCurrentTarget 
-            ? 'bg-emerald-500/5 border-2 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
-            : 'bg-transparent border-2 border-transparent'
+            ? 'bg-emerald-500/5 border-2 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:scale-[1.01]' 
+            : 'bg-transparent border-2 border-transparent hover:scale-[1.01]'
       }`}
       onClick={() => !isExpanded && setIsExpanded(true)}
     >
@@ -45,12 +55,32 @@ export default function MessageBubble({
         <div className={`text-xs font-bold transition-colors ${
           isCurrentTarget ? 'text-emerald-500' : 'text-slate-300 opacity-70'
         }`}>
-          Message {stepNumber}
+          Step {stepNumber}
         </div>
         {hasBeenSent && sentTimestamp && (
           <div className="text-[10px] text-emerald-500 font-medium opacity-80">✓ {fmtDate(sentTimestamp)}</div>
         )}
       </div>
+
+      {variants && variants.length > 0 && isExpanded && (
+        <div className="flex flex-wrap gap-2 mb-2 animate-fade-in" onClick={e => e.stopPropagation()}>
+          {variants.map(v => (
+            <button
+              key={v.id}
+              onClick={(e) => handleVariantClick(e, v.id, v.text)}
+              className={`transition-enterprise px-3 py-1.5 rounded-full text-[10px] font-bold border ${selectedVariant === v.id ? 'bg-emerald-500 text-slate-900 border-emerald-500 shadow-md' : 'bg-slate-900 text-slate-300 border-slate-600 hover:border-emerald-500/50'}`}
+            >
+              ↳ {v.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {variants && variants.length > 0 && !isExpanded && !hasBeenSent && (
+         <div className="text-[10px] text-emerald-500 font-bold opacity-80 mb-1">
+            {variants.length} Branches Available (Click to view)
+         </div>
+      )}
 
       {!isExpanded ? (
         <div 
@@ -73,6 +103,7 @@ export default function MessageBubble({
             value={text} 
             onChange={(e) => setText(e.target.value)}
             className="input-field w-full min-h-[120px] resize-vertical py-2 px-3"
+            style={{ fontSize: 13, lineHeight: 1.6 }}
           />
           <div className="flex gap-2 justify-end">
             <button 

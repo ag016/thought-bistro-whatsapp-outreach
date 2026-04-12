@@ -98,7 +98,6 @@ export default function App() {
   const [tab,          setTab]          = useState<'due' | 'all'>('due');
   const [view,          setView]          = useState<'list' | 'board'>('list');
   const [apiError,     setApiError]     = useState<string | null>(null);
-  const [awaitingSent, setAwaitingSent] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem(AUTH_KEY) === '1') setAuthed(true);
@@ -151,7 +150,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, [authed, inputPin]);
 
-  const handleSend     = (id: string) => setAwaitingSent(id);
   const handleMarkSent = async (id: string) => {
     const lead = leads.find(l => l.id === id); if (!lead) return;
     const nextStep = Math.min(lead.current_step + 1, NURTURE_SEQUENCE.length);
@@ -159,7 +157,6 @@ export default function App() {
     
     // Optimistic update
     setLeads(prev => prev.map(l => l.id === id ? { ...l, current_step: nextStep, last_sent_at: now } : l));
-    setAwaitingSent(null);
 
     // Persist
     await fetch('/api/nurture', {
@@ -303,7 +300,7 @@ export default function App() {
         ) : (
           <div style={{ paddingBottom: 24 }}>
             {view === 'list' ? (
-              <LeadList leads={displayLeads} onPause={handlePause} onSend={handleSend} />
+              <LeadList leads={displayLeads} onPause={handlePause} />
             ) : (
               <KanbanBoard leads={displayLeads} onUpdateTag={handleUpdateTag} />
             )}

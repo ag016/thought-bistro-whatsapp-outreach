@@ -14,8 +14,15 @@ export interface Lead {
   metadata: any;
 }
 
+export interface MessageVariant {
+  id: string; // e.g. 'no-ads', 'no-budget', 'no-show', 'no-pickup', 'default'
+  label: string; // e.g. "Not Running Ads"
+  text: string;
+}
+
 export interface NurtureStep {
   step_number: number; // 1-indexed
   day_offset: number;
-  message_text: string;
+  message_text: string; // Default fallback message
+  variants?: MessageVariant[]; // Branches for the tree architecture
 }

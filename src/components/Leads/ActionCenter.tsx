@@ -163,7 +163,9 @@ export default function ActionCenter({
         <div className="text-[11px] font-bold text-emerald-500 tracking-widest mb-3.5 uppercase">Quick Templates</div>
         <div className="flex flex-col gap-2">
           {templates.map(tpl => {
-            const personalised = tpl.text.replace('[NAME]', lead.full_name);
+            const personalised = tpl.text
+              .replace('[NAME]', lead.full_name || 'Doctor')
+              .replace(/\[CLINIC_TYPE\]/g, lead.metadata?.clinic_type ? lead.metadata.clinic_type.toLowerCase() : 'clinic');
             const waLink = `https://wa.me/${lead.phone_number}?text=${encodeURIComponent(personalised)}`;
             return (
               <div key={tpl.id} className="relative group">
