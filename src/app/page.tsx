@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { calculateIsDue, generateWhatsAppLink, NURTURE_SEQUENCE } from '@/lib/nurture';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -238,6 +239,7 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
   lead: Lead; awaitingSent: boolean;
   onSend: (id: string) => void; onMarkSent: (id: string) => void; onPause: (id: string) => void;
 }) {
+  const router      = useRouter();
   const isDue       = calculateIsDue(lead);
   const isActive    = lead.status === 'active';
   const isCompleted = lead.current_step >= NURTURE_SEQUENCE.length;
@@ -250,8 +252,8 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
   return (
     <div className="animate-fade-in" style={{ background: '#0d1a0d', border: `1px solid ${lead.status === 'paused' ? '#2d1f0a' : canSend ? '#25D36635' : '#1a2e1a'}`, borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: canSend ? '0 0 28px rgba(37,211,102,0.07)' : 'none' }}>
 
-      {/* ── Card Header ── */}
-      <div style={{ padding: '16px 16px 12px' }}>
+      {/* ── Card Header — click anywhere to open detail ── */}
+      <div onClick={() => router.push(`/leads/${lead.id}`)} style={{ padding: '16px 16px 12px', cursor: 'pointer' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
           <div style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
             <div style={{ fontWeight: 800, fontSize: 16, color: '#ecfdf5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.full_name || 'Unknown Lead'}</div>
