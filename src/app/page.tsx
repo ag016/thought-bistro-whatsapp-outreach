@@ -84,6 +84,7 @@ function formatDate(str: string) {
 
 export default function App() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [authed,       setAuthed]       = useState(false);
   const [pin,          setPin]          = useState('');
   const [pinShake,     setPinShake]     = useState(false);
