@@ -70,7 +70,7 @@
 @layer components {
   .detail-grid { 
     display: grid; 
-    grid-template-columns: 1fr; 
+    grid-template-columns: 300px 1fr 350px; 
     gap: 24px; 
     transition: all 0.3s ease;
   }
@@ -119,8 +119,8 @@
   .pane-card { 
     background: var(--surface-color); 
     border: 1px solid var(--border-color); 
-    border-radius: 18px; 
-    padding: 20px; 
+    border-radius: 20px; 
+    padding: 24px; 
     height: fit-content;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }

@@ -38,8 +38,9 @@ export default function MessageBubble({
         gap: 8, 
         padding: '12px', 
         borderRadius: 16, 
-        background: isExpanded ? 'var(--surface-color)' : 'transparent',
-        border: isExpanded ? '1px solid var(--accent-color)' : '1px solid transparent',
+        background: isExpanded ? 'var(--surface-color)' : isCurrentTarget ? 'color-mix(in srgb, var(--accent-color), transparent 95%)' : 'transparent',
+        border: isExpanded ? '1px solid var(--accent-color)' : isCurrentTarget ? '1px solid var(--accent-color)' : '1px solid transparent',
+        boxShadow: isCurrentTarget ? '0 0 15px color-mix(in srgb, var(--accent-color), transparent 80%)' : 'none',
         transition: 'all 0.2s ease',
         cursor: isExpanded ? 'default' : 'pointer'
       }}
