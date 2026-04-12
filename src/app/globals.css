@@ -3,16 +3,46 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg-color: #0B0F1A;
+    --surface-color: #161B2C;
+    --accent-color: #10B981;
+    --text-color: #F8FAFC;
+    --border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .theme-midnight {
+    --bg-color: #0B0F1A;
+    --surface-color: #161B2C;
+    --accent-color: #10B981;
+    --text-color: #F8FAFC;
+  }
+
+  .theme-forest {
+    --bg-color: #060D06;
+    --surface-color: #0D1A0D;
+    --accent-color: #25D366;
+    --text-color: #ECFDF5;
+  }
+
+  .theme-slate {
+    --bg-color: #0F172A;
+    --surface-color: #1E293B;
+    --accent-color: #6366F1;
+    --text-color: #F1F5F9;
+  }
+
   * {
     box-sizing: border-box;
   }
 
   body {
-    background: #060d06;
-    color: #ecfdf5;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     min-height: 100vh;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   ::-webkit-scrollbar {
@@ -22,7 +52,7 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1a2e1a;
+    background: var(--surface-color);
     border-radius: 10px;
   }
 }
