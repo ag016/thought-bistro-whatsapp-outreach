@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
@@ -52,12 +52,19 @@ export default function SettingsPage() {
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{session?.user?.name || 'Not Signed In'}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6 }}>{session?.user?.email || 'No Google account linked'}</div>
               </div>
-              {session && (
+              {session ? (
                 <button 
                   onClick={() => signOut({ callbackUrl: '/' })} 
                   className="transition-enterprise"
                   style={{ padding: '6px 12px', borderRadius: 8, background: 'transparent', border: '1px solid var(--danger-color)', color: 'var(--danger-color)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                   Disconnect
+                </button>
+              ) : (
+                <button 
+                  onClick={() => signIn('google', { callbackUrl: '/' })} 
+                  className="transition-enterprise"
+                  style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--accent-color)', border: 'none', color: 'var(--bg-color)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  Sign In with Google
                 </button>
               )}
             </div>
