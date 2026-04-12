@@ -136,8 +136,10 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   const [newNote,      setNewNote]      = useState('');
   const [addingNote,   setAddingNote]   = useState(false);
   const [callDate,     setCallDate]     = useState('');
-  const [booking,      setBooking]      = useState(false);
-  const [bookSuccess,  setBookSuccess]  = useState('');
+  const [eventTitle,     setEventTitle]     = useState('');
+  const [eventNote,      setEventNote]      = useState('');
+  const [booking,        setBooking]        = useState(false);
+  const [bookSuccess,    setBookSuccess]    = useState('');
 
   const { data: session } = useSession();
 
@@ -255,13 +257,19 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
       const res = await fetch('/api/calendar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadName: lead.full_name, phone: lead.phone_number, dateStr: callDate })
+        body: JSON.stringify({ 
+          leadName: lead.full_name, 
+          phone: lead.phone_number, 
+          dateStr: callDate,
+          summary: eventTitle || undefined,
+          description: eventNote || undefined
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
       // Auto-note
-      const noteText = `🗓 Scheduled call for ${new Date(callDate).toLocaleString()}`;
+      const noteText = `🗓 Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}`;
       const now = new Date().toISOString();
       setNotes(prev => [...prev, { lead_id: lead.id, note_text: noteText, created_at: now, source: 'system' }]);
       fetch('/api/notes', {
@@ -273,10 +281,38 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
       setBookSuccess('Scheduled!');
       setTimeout(() => setBookSuccess(''), 3000);
       setCallDate('');
+      setEventTitle('');
+      setEventNote('');
     } catch (e: any) {
       alert(e.message || 'Failed to schedule');
     }
     setBooking(false);
+  };
+
+  const handleDeleteNote = async (noteText: string) => {
+    if (!confirm('Delete this note?')) return;
+    try {
+      const res = await fetch(`/api/notes?leadId=${encodeURIComponent(lead.id)}&noteText=${encodeURIComponent(noteText)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete note');
+      setNotes(prev => prev.filter(n => n.note_text !== noteText));
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!confirm('Remove appointment from Google Calendar?')) return;
+    try {
+      const res = await fetch(`/api/calendar?leadName=${encodeURIComponent(lead.full_name)}&phone=${encodeURIComponent(lead.phone_number)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('No matching event found or failed to delete');
+      alert('Event removed from calendar');
+    } catch (e: any) {
+      alert(e.message);
+    }
   };
 
   if (loading) return (
@@ -355,11 +391,14 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                   <div style={{ fontSize: 13, color: '#3a5a3a', fontStyle: 'italic' }}>No notes yet.</div>
                 ) : (
                   notes.map((note, i) => (
-                    <div key={i} style={{ background: '#1a1a0f', border: '1px solid #2d2d1f', borderRadius: 12, padding: '12px' }}>
-                      <div style={{ fontSize: 13, color: '#fef08a', lineHeight: 1.5, marginBottom: 6 }}>{note.note_text}</div>
-                      <div style={{ fontSize: 10, color: '#a1a1aa' }}>
-                        {note.source === 'imported' ? 'Imported from Sheet' : fmt(note.created_at)}
+                    <div key={i} style={{ background: '#1a1a0f', border: '1px solid #2d2d1f', borderRadius: 12, padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontSize: 13, color: '#fef08a', lineHeight: 1.5, marginBottom: 6 }}>{note.note_text}</div>
+                        <div style={{ fontSize: 10, color: '#a1a1aa' }}>
+                          {note.source === 'imported' ? 'Imported from Sheet' : fmt(note.created_at)}
+                        </div>
                       </div>
+                      <button onClick={() => handleDeleteNote(note.note_text)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>×</button>
                     </div>
                   ))
                 )}
@@ -387,10 +426,15 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
               <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', letterSpacing: '0.08em', marginBottom: 14 }}>BOOK APPOINTMENT</div>
               {session && (session as any).accessToken ? (
                 <>
+                  <input type="text" placeholder="Event Title (e.g. Discovery Call)" value={eventTitle} onChange={e => setEventTitle(e.target.value)} style={{ width: '100%', background: '#0a150a', border: '1px solid #1a2e1a', color: '#ecfdf5', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 12, outline: 'none', colorScheme: 'dark' }} />
+                  <input type="text" placeholder="Appointment Note" value={eventNote} onChange={e => setEventNote(e.target.value)} style={{ width: '100%', background: '#0a150a', border: '1px solid #1a2e1a', color: '#ecfdf5', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 12, outline: 'none', colorScheme: 'dark' }} />
                   <input type="datetime-local" value={callDate} onChange={e => setCallDate(e.target.value)} style={{ width: '100%', background: '#0a150a', border: '1px solid #1a2e1a', color: '#ecfdf5', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 12, outline: 'none', colorScheme: 'dark' }} />
-                  <button onClick={handleBookCall} disabled={booking || !callDate} style={{ width: '100%', padding: '12px', borderRadius: 10, background: booking ? '#1e3a8a' : '#2563eb', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: booking || !callDate ? 'not-allowed' : 'pointer' }}>
-                    {booking ? 'Scheduling...' : bookSuccess ? '✓ ' + bookSuccess : 'Add to Google Calendar'}
-                  </button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={handleBookCall} disabled={booking || !callDate} style={{ flex: 1, padding: '12px', borderRadius: 10, background: booking ? '#1e3a8a' : '#2563eb', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: booking || !callDate ? 'not-allowed' : 'pointer' }}>
+                      {booking ? 'Scheduling...' : bookSuccess ? '✓ ' + bookSuccess : 'Add to Google Calendar'}
+                    </button>
+                    <button onClick={handleDeleteEvent} style={{ padding: '12px', borderRadius: 10, background: '#450a0a', color: '#f87171', border: '1px solid #7f1d1d', cursor: 'pointer', fontSize: 18 }}>🗑</button>
+                  </div>
                 </>
               ) : (
                 <div style={{ textAlign: 'center', padding: '10px 0' }}>

@@ -84,3 +84,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const leadId = searchParams.get('leadId');
+  const noteText = searchParams.get('noteText');
+
+  if (!leadId || !noteText) {
+    return NextResponse.json({ error: 'leadId and noteText required' }, { status: 400 });
+  }
+
+  if (!APPS_SCRIPT_URL) {
+    return NextResponse.json({ success: true, warn: 'APPS_SCRIPT_URL not set — note not deleted' });
+  }
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        action:    'deleteNote',
+        secret:    WEBHOOK_SECRET,
+        leadId:    leadId,
+        noteText:  noteText,
+      }),
+      redirect: 'follow',
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
