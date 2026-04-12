@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { NURTURE_SEQUENCE, generateWhatsAppLink, getDaysUntilDue } from '@/lib/nurture';
 import InfoField from './InfoField';
 
@@ -65,6 +66,11 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   const [awaitSentMsg, setAwaitSentMsg] = useState<number | null>(null);
   const [newNote,      setNewNote]      = useState('');
   const [addingNote,   setAddingNote]   = useState(false);
+  const [callDate,     setCallDate]     = useState('');
+  const [booking,      setBooking]      = useState(false);
+  const [bookSuccess,  setBookSuccess]  = useState('');
+
+  const { data: session } = useSession();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem(AUTH_KEY) !== '1') {
@@ -170,6 +176,39 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     setAddingNote(false);
   };
 
+  const handleBookCall = async () => {
+    if (!callDate || !lead) return;
+    setBooking(true);
+    setBookSuccess('');
+
+    try {
+      const res = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadName: lead.full_name, phone: lead.phone_number, dateStr: callDate })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // Auto-note
+      const noteText = `🗓 Scheduled call for ${new Date(callDate).toLocaleString()}`;
+      const now = new Date().toISOString();
+      setNotes(prev => [...prev, { lead_id: lead.id, note_text: noteText, created_at: now, source: 'system' }]);
+      fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id, noteText, createdAt: now })
+      });
+
+      setBookSuccess('Scheduled!');
+      setTimeout(() => setBookSuccess(''), 3000);
+      setCallDate('');
+    } catch (e: any) {
+      alert(e.message || 'Failed to schedule');
+    }
+    setBooking(false);
+  };
+
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#060d06', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5a8a5a' }}>
       <div style={{ width: 32, height: 32, border: '2px solid #25D366', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -271,6 +310,23 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                   Add
                 </button>
               </div>
+            </div>
+
+            {/* Calendar Section */}
+            <div style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: 18, padding: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', letterSpacing: '0.08em', marginBottom: 14 }}>BOOK APPOINTMENT</div>
+              {session && (session as any).accessToken ? (
+                <>
+                  <input type="datetime-local" value={callDate} onChange={e => setCallDate(e.target.value)} style={{ width: '100%', background: '#0a150a', border: '1px solid #1a2e1a', color: '#ecfdf5', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 12, outline: 'none', colorScheme: 'dark' }} />
+                  <button onClick={handleBookCall} disabled={booking || !callDate} style={{ width: '100%', padding: '12px', borderRadius: 10, background: booking ? '#1e3a8a' : '#2563eb', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: booking || !callDate ? 'not-allowed' : 'pointer' }}>
+                    {booking ? 'Scheduling...' : bookSuccess ? '✓ ' + bookSuccess : 'Add to Google Calendar'}
+                  </button>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                  <div style={{ fontSize: 12, color: '#5a8a5a' }}>Sign in to Google on your Dashboard to enable 1-tap scheduling here.</div>
+                </div>
+              )}
             </div>
 
             {/* Lead Info */}

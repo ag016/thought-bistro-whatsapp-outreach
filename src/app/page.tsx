@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { calculateIsDue, generateWhatsAppLink, NURTURE_SEQUENCE } from '@/lib/nurture';
+import { useSession, signIn } from 'next-auth/react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,12 +52,9 @@ type NurtureMap = Record<string, NurtureEntry>;
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CORRECT_PIN = '132103';
-const NURTURE_KEY = 'tb_nurture_v2';
 const AUTH_KEY    = 'tb_auth_session';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-// Removed localStorage helpers as we now use Sheets for persistence
 
 function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
   return sheetLeads
@@ -85,6 +83,7 @@ function formatDate(str: string) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function App() {
+  const { data: session, status } = useSession();
   const [authed,       setAuthed]       = useState(false);
   const [pin,          setPin]          = useState('');
   const [pinShake,     setPinShake]     = useState(false);
@@ -133,8 +132,10 @@ export default function App() {
   const deletePin = () => setPin(p => p.slice(0, -1));
 
   // Physical keyboard support for PIN screen
+  const isAccessGranted = authed || !!session;
+
   useEffect(() => {
-    if (authed) return;
+    if (isAccessGranted) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key >= '0' && e.key <= '9') inputPin(e.key);
       else if (e.key === 'Backspace') deletePin();
@@ -179,7 +180,8 @@ export default function App() {
   const dueLeads     = leads.filter(l => calculateIsDue(l));
   const displayLeads = tab === 'due' ? dueLeads : leads;
 
-  if (!authed) return <PinScreen pin={pin} shake={pinShake} onInput={inputPin} onDelete={deletePin} />;
+  if (status === 'loading') return null;
+  if (!isAccessGranted) return <PinScreen pin={pin} shake={pinShake} onInput={inputPin} onDelete={deletePin} />;
 
   return (
     <div style={{ minHeight: '100vh', background: '#060d06', paddingBottom: 80 }}>
@@ -469,6 +471,12 @@ function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: bool
               {d}
             </button>
           ))}
+        </div>
+        <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px dotted #1a2e1a', width: '100%' }}>
+          <button onClick={() => signIn('google')} style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: '#ecfdf5', color: '#060d06', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
+             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: 18 }} />
+             Sign in with Google
+          </button>
         </div>
       </div>
     </div>
