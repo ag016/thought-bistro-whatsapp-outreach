@@ -46,7 +46,7 @@
         }
       ],
       "importsChanged": true,
-      "lastEdit": "2026-04-12T12:05:52.720Z"
+      "lastEdit": "2026-04-12T13:44:10.718Z"
     },
     "project/src/app/api/calendar/route.ts": {
       "modifiedRanges": [
@@ -77,9 +77,49 @@
       ],
       "importsChanged": false,
       "lastEdit": "2026-04-12T11:39:58.786Z"
+    },
+    "project/src/app/api/tags/route.ts": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 40
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-04-12T13:33:19.029Z"
+    },
+    "project/src/components/Dashboard/ViewSwitcher.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 46
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-04-12T13:35:04.431Z"
+    },
+    "project/src/components/Dashboard/LeadList.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 158
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-04-12T13:35:52.357Z"
+    },
+    "project/src/components/Dashboard/KanbanBoard.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 155
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-04-12T13:36:36.292Z"
     }
   },
   "turnCycles": 0,
   "maxCycles": 3,
-  "lastUpdated": "2026-04-12T12:27:09.772Z"
+  "lastUpdated": "2026-04-12T13:44:10.718Z"
 }
