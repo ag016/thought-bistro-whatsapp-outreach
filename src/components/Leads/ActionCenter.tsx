@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import MessageBubble from '@/components/Leads/MessageBubble';
+import { generateWhatsAppLink, personalizeMessage } from '@/lib/nurture';
 
 interface Note {
   lead_id: string;
@@ -163,43 +165,18 @@ export default function ActionCenter({
         <div className="text-[11px] font-bold text-emerald-500 tracking-widest mb-3.5 uppercase">Quick Templates</div>
         <div className="flex flex-col gap-2">
           {templates.map(tpl => {
-            const personalised = tpl.text
-              .replace('[NAME]', lead.full_name || 'Doctor')
-              .replace(/\[CLINIC_TYPE\]/g, lead.metadata?.clinic_type ? lead.metadata.clinic_type.toLowerCase() : 'clinic');
-            const waLink = `https://wa.me/${lead.phone_number}?text=${encodeURIComponent(personalised)}`;
+            const personalised = personalizeMessage(tpl.text, lead.full_name, lead.metadata?.clinic_type);
             return (
-              <div key={tpl.id} className="relative group">
-                <a 
-                  href={waLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="transition-enterprise flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-white/10 text-slate-200 text-xs font-semibold no-underline cursor-pointer transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5"
-                >
-                  {tpl.name}
-                  <span className="text-sm opacity-50 group-hover:opacity-100 transition-opacity">↗</span>
-                </a>
-                <button 
-                  onClick={(e) => { e.preventDefault(); setPreviewTemplate(personalised); }}
-                  className="transition-enterprise absolute right-12 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500 underline cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  Preview
-                </button>
-              </div>
+              <MessageBubble
+                key={tpl.id}
+                title={tpl.name}
+                messageText={personalised}
+                phoneNumber={lead.phone_number}
+                generateWhatsAppLink={generateWhatsAppLink}
+              />
             );
           })}
         </div>
-
-        {previewTemplate && (
-          <div className="mt-4 p-3 glass-surface transition-enterprise border-emerald-500/50 rounded-xl text-xs text-slate-300 whitespace-pre-wrap relative animate-fade-in">
-            <button 
-              onClick={() => setPreviewTemplate(null)} 
-              className="transition-enterprise absolute -top-2 -right-2 bg-emerald-500 text-slate-900 border-none rounded-full w-5 h-5 cursor-pointer text-xs font-bold hover:scale-110 transition-transform"
-            >
-              ×
-            </button>
-            {previewTemplate}
-          </div>
-        )}
       </div>
     </div>
   );

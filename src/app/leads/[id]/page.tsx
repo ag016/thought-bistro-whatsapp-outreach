@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { NURTURE_SEQUENCE, getDaysUntilDue } from '@/lib/nurture';
+import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink } from '@/lib/nurture';
 import MessageBubble from '@/components/Leads/MessageBubble';
 import ActionCenter from '@/components/Leads/ActionCenter';
 import { Skeleton } from '@/components/UI/Skeleton';
@@ -146,8 +146,8 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
 
   useEffect(() => { loadLead(); }, [loadLead]);
 
-  const handleMarkMsgSent = async (stepNumber: number) => {
-    if (!lead) return;
+  const handleMarkMsgSent = async (stepNumber?: number) => {
+    if (!lead || stepNumber === undefined) return;
     const now = new Date().toISOString();
     const newCurrentStep = Math.max(lead.current_step, stepNumber);
     setLead(prev => prev ? { ...prev, current_step: newCurrentStep, last_sent_at: now } : prev);
@@ -426,6 +426,10 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                   const hasBeenSent = !!sentTimestamp;
                   const isCurrentTarget = !hasBeenSent && i === lead.current_step && !isCompleted;
                   
+                  const selectedVariant = autoSelectVariant(step.step_number, m.lead_quality_desc, step.variants);
+                  const baseText = selectedVariant ? selectedVariant.text : step.message_text;
+                  const finalText = personalizeMessage(baseText, lead.full_name, m.clinic_type);
+                  
                   return (
                     <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
@@ -438,14 +442,14 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                       <div style={{ flex: 1, paddingTop: 8 }}>
                         <MessageBubble 
                           stepNumber={step.step_number}
-                          messageText={step.message_text}
-                          variants={step.variants}
+                          messageText={finalText}
                           hasBeenSent={hasBeenSent}
                           sentTimestamp={sentTimestamp}
                           isCurrentTarget={isCurrentTarget}
                           phoneNumber={lead.phone_number}
                           onMarkSent={handleMarkMsgSent}
                           fmtDate={fmt}
+                          generateWhatsAppLink={generateWhatsAppLink}
                         />
                       </div>
                     </div>

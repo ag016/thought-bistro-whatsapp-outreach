@@ -1,4 +1,4 @@
-import { NurtureStep } from '../types';
+import { NurtureStep, MessageVariant } from '../types';
 
 export const NURTURE_SEQUENCE: NurtureStep[] = [
   {
@@ -9,22 +9,22 @@ export const NURTURE_SEQUENCE: NurtureStep[] = [
       {
         id: 'no-ads',
         label: 'Not Running Ads',
-        text: `Hey Doctor,\n\nBased on your answers, you aren't currently running ads. Usually this means relying entirely on word of mouth or Practo, which is great for steady business but unpredictable for scaling high-value treatments.\n\nQuick context on who we are: we're Thought Bistro, and we engineer patient acquisition machines. We build a predictable flow of premium patients so you aren't waiting on the algorithm or referrals.\n\nWe guarantee you'll make your money back in Month 1 - or we lose 50% of our fee.\n\nFree for a quick 5-minute call tomorrow?`
+        text: `Hey Doctor,\n\nBased on your answers, you aren't currently running ads. Usually this means relying entirely on word of mouth or Practo, which is great for steady business but unpredictable for scaling high-value treatments.\n\nQuick context on who we are: we're Thought Bistro, and we engineer patient acquisition machines. We build a predictable flow of premium patients so you aren't waiting on the algorithm or referrals.\n\nWe guarantee you'll get enough qualified leads in month 1 that you can make your money back - or we lose 50% of our fee.\n\nFree for a quick 5-minute call tomorrow?`
       },
       {
         id: 'no-budget',
         label: "Leads Don't Have Budget",
-        text: `Hey Doctor,\n\nBased on your answers, you're getting leads but they don't seem to have the budget. This is the #1 symptom of running 'offer-based' generic ads that attract price shoppers instead of premium patients.\n\nQuick context: we're Thought Bistro. We fix this by running authority-based video ads that pre-educate patients on the value of the treatment before they ever see the price.\n\nWe guarantee enough highly qualified, premium leads to make your money back in Month 1 - or we lose 50% of our fee.\n\nFree for a quick 5-minute call tomorrow?`
+        text: `Hey Doctor,\n\nBased on your answers, you're getting leads but they don't seem to have the budget. This is the #1 symptom of running 'offer-based' generic ads that attract price shoppers instead of premium patients.\n\nQuick context: we're Thought Bistro. We fix this by running authority-based video ads that pre-educate patients on the value of the treatment before they ever see the price.\n\nWe guarantee you'll get enough qualified leads in month 1 that you can make your money back - or we lose 50% of our fee.\n\nFree for a quick 5-minute call tomorrow?`
       },
       {
         id: 'no-show',
         label: "Don't Show Up",
-        text: `Hey Doctor,\n\nBased on your answers, you're booking appointments but patients aren't showing up. This usually means your lead generation process hasn't established enough trust or urgency.\n\nQuick context: we're Thought Bistro. Our system uses clinical research-backed videos and pain-point lead forms so that by the time they book, they are fully invested in solving their problem with you specifically.\n\nWe guarantee results that make your money back in Month 1 - or we lose 50% of our fee.\n\nFree for a quick 5-minute call tomorrow?`
+        text: `Hey Doctor,\n\nBased on your answers, you're booking appointments but patients aren't showing up. This usually means your lead generation process hasn't established enough trust or urgency.\n\nQuick context: we're Thought Bistro. Our system uses clinical research-backed videos and pain-point lead forms so that by the time they book, they are fully invested in solving their problem with you specifically.\n\nWe guarantee you'll get enough qualified leads in month 1 that you can make your money back - or we lose 50% of our fee.\n\nFree for a quick 5-minute call tomorrow?`
       },
       {
         id: 'no-pickup',
         label: "Don't Pick Up",
-        text: `Hey Doctor,\n\nBased on your answers, you're dealing with something almost every clinic deals with: generating leads but them not answering your calls!\n\nThis happens because standard lead forms make it too easy to click by mistake. At Thought Bistro, we obsess over lead quality. We use strict, high-friction forms so that when your team calls, the patient is actually waiting for it.\n\nWe guarantee you'll get enough answering, qualified leads to make your money back in Month 1 - or we lose 50% of our fee.\n\nFree for a quick 5-minute call tomorrow?`
+        text: `Hey Doctor,\n\nBased on your answers, you're dealing with something almost every clinic deals with: generating leads but them not answering your calls!\n\nThis happens because standard lead forms make it too easy to click by mistake. At Thought Bistro, we obsess over lead quality. We use strict, high-friction forms so that when your team calls, the patient is actually waiting for it.\n\nWe guarantee you'll get enough qualified leads in month 1 that you can make your money back - or we lose 50% of our fee.\n\nFree for a quick 5-minute call tomorrow?`
       }
     ]
   },
@@ -58,7 +58,7 @@ export const NURTURE_SEQUENCE: NurtureStep[] = [
   {
     step_number: 5,
     day_offset: 9,
-    message_text: `Doctor, is your team tired of calling people who "just clicked by mistake"?\n\nOur lead forms are built around patient pain points. Before your team picks up the phone, they already know:\n\n- What the patient is struggling with\n- How long they've had the problem\n- Whether they've tried other treatments\n\nIksana Wellness (skin clinic, Hauz Khas) asked us to guarantee 4 qualified leads in Month 1.\n\nThey got 16 in the first 14 days.\n\nThis quality is exactly why we back it with a guarantee: get enough qualified leads to make your money back in Month 1 or we lose 50% of our fee.\n\nWorth 5 minutes to see how we'd set this up for you?`
+    message_text: `Doctor, is your team tired of calling people who "just clicked by mistake"?\n\nOur lead forms are built around patient pain points. Before your team picks up the phone, they already know:\n\n- What the patient is struggling with\n- How long they've had the problem\n- Whether they've tried other treatments\n\nIksana Wellness (skin clinic, Hauz Khas) asked us to guarantee 4 qualified leads in Month 1.\n\nThey got 16 in the first 14 days.\n\nThis quality is exactly why we back it with a guarantee: get enough qualified leads in month 1 that you can make your money back or we lose 50% of our fee.\n\nWorth 5 minutes to see how we'd set this up for you?`
   },
   {
     step_number: 6,
@@ -102,12 +102,69 @@ export function getDaysUntilDue(lead: { current_step: number; created_at: string
 }
 
 export function generateWhatsAppLink(phone: string, message: string): string {
-  const cleanPhone = phone.replace(/\D/g, '');
+  // Completely strip non-digits
+  const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+  if (!cleanPhone) return '';
   let formattedPhone = cleanPhone;
-  if (!cleanPhone.startsWith('91') && !cleanPhone.startsWith('+')) {
+  // If it's a 10 digit Indian number without country code
+  if (cleanPhone.length === 10) {
     formattedPhone = '91' + cleanPhone;
-  } else if (cleanPhone.startsWith('0')) {
+  } else if (cleanPhone.startsWith('0') && cleanPhone.length === 11) {
     formattedPhone = '91' + cleanPhone.substring(1);
+  } else if (!cleanPhone.startsWith('91') && cleanPhone.length !== 10 && !cleanPhone.startsWith('1') && !cleanPhone.startsWith('44')) {
+    // Arbitrary fallback just in case formatting is totally weird but it's an Indian lead
+    formattedPhone = '91' + cleanPhone;
   }
   return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+}
+
+export function extractFirstName(fullName: string): string {
+  if (!fullName) return '';
+  const first = fullName.trim().split(' ')[0];
+  // Remove special characters
+  return first.replace(/[^a-zA-Z]/g, '');
+}
+
+export function personalizeMessage(text: string, fullName: string, clinicType?: string): string {
+  const firstName = extractFirstName(fullName);
+  const nameToUse = firstName ? `Dr. ${firstName}` : 'Doctor';
+  
+  return text
+    // Replace "Hey Doctor," with "Hey Dr. Name,"
+    .replace(/Hey Doctor,/g, `Hey ${nameToUse},`)
+    // Replace generic "Doctor," with "Dr. Name,"
+    .replace(/Doctor,/g, `${nameToUse},`)
+    // Specific template replacements
+    .replace(/\[NAME\]/g, nameToUse)
+    .replace(/\[CLINIC_TYPE\]/g, clinicType ? clinicType.toLowerCase() : 'clinic');
+}
+
+export function autoSelectVariant(stepNumber: number, leadQualityDesc: string, variants: MessageVariant[] | undefined): MessageVariant | undefined {
+  if (!variants || variants.length === 0) return undefined;
+  
+  const desc = (leadQualityDesc || '').toLowerCase();
+  
+  if (stepNumber === 1) {
+    if (desc.includes('budget') || desc.includes('price')) {
+      return variants.find(v => v.id === 'no-budget');
+    }
+    if (desc.includes('show up') || desc.includes('no show')) {
+      return variants.find(v => v.id === 'no-show');
+    }
+    if (desc.includes('pick up') || desc.includes('answer')) {
+      return variants.find(v => v.id === 'no-pickup');
+    }
+    if (desc.includes('ads') || desc.includes('not running')) {
+      return variants.find(v => v.id === 'no-ads');
+    }
+  }
+  
+  if (stepNumber === 2) {
+    if (desc.includes('budget') || desc.includes('price')) {
+      return variants.find(v => v.id === 'budget-focus');
+    }
+  }
+  
+  // Return the first one as default if no match
+  return variants[0];
 }

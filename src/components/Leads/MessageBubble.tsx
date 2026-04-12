@@ -1,44 +1,36 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageVariant } from '@/types';
 
 interface MessageBubbleProps {
-  stepNumber: number;
+  stepNumber?: number; // Optional now, since templates won't have it
+  title?: string;
   messageText: string;
-  variants?: MessageVariant[];
-  hasBeenSent: boolean;
+  hasBeenSent?: boolean;
   sentTimestamp?: string;
-  isCurrentTarget: boolean;
+  isCurrentTarget?: boolean;
   phoneNumber: string;
-  onMarkSent: (stepNumber: number) => void;
-  fmtDate: (date: string) => string;
+  onMarkSent?: (stepNumber?: number) => void;
+  fmtDate?: (date: string) => string;
+  generateWhatsAppLink: (phone: string, text: string) => string;
 }
 
 export default function MessageBubble({
   stepNumber,
+  title,
   messageText,
-  variants,
   hasBeenSent,
   sentTimestamp,
   isCurrentTarget,
   phoneNumber,
   onMarkSent,
-  fmtDate
+  fmtDate,
+  generateWhatsAppLink
 }: MessageBubbleProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedVariant, setSelectedVariant] = useState<string>(variants?.[0]?.id || 'default');
-  const [text, setText] = useState(() => variants ? variants[0].text : messageText);
+  const [text, setText] = useState(messageText);
 
-  const generateWhatsAppLink = (phone: string, message: string) => {
-    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-  };
-
-  const handleVariantClick = (e: React.MouseEvent, vId: string, vText: string) => {
-    e.stopPropagation();
-    setSelectedVariant(vId);
-    setText(vText);
-  };
+  const displayTitle = title || (stepNumber ? `Message ${stepNumber}` : 'Template');
 
   return (
     <div 
@@ -53,34 +45,14 @@ export default function MessageBubble({
     >
       <div className="flex justify-between items-center mb-1">
         <div className={`text-xs font-bold transition-colors ${
-          isCurrentTarget ? 'text-emerald-500' : 'text-slate-300 opacity-70'
+          isCurrentTarget || !stepNumber ? 'text-emerald-500' : 'text-slate-300 opacity-70'
         }`}>
-          Step {stepNumber}
+          {displayTitle}
         </div>
-        {hasBeenSent && sentTimestamp && (
+        {hasBeenSent && sentTimestamp && fmtDate && (
           <div className="text-[10px] text-emerald-500 font-medium opacity-80">✓ {fmtDate(sentTimestamp)}</div>
         )}
       </div>
-
-      {variants && variants.length > 0 && isExpanded && (
-        <div className="flex flex-wrap gap-2 mb-2 animate-fade-in" onClick={e => e.stopPropagation()}>
-          {variants.map(v => (
-            <button
-              key={v.id}
-              onClick={(e) => handleVariantClick(e, v.id, v.text)}
-              className={`transition-enterprise px-3 py-1.5 rounded-full text-[10px] font-bold border ${selectedVariant === v.id ? 'bg-emerald-500 text-slate-900 border-emerald-500 shadow-md' : 'bg-slate-900 text-slate-300 border-slate-600 hover:border-emerald-500/50'}`}
-            >
-              ↳ {v.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {variants && variants.length > 0 && !isExpanded && !hasBeenSent && (
-         <div className="text-[10px] text-emerald-500 font-bold opacity-80 mb-1">
-            {variants.length} Branches Available (Click to view)
-         </div>
-      )}
 
       {!isExpanded ? (
         <div 
@@ -98,7 +70,7 @@ export default function MessageBubble({
           {text}
         </div>
       ) : (
-        <div className="flex flex-col gap-3 animate-fade-in">
+        <div className="flex flex-col gap-3 animate-fade-in" onClick={e => e.stopPropagation()}>
           <textarea 
             value={text} 
             onChange={(e) => setText(e.target.value)}
@@ -118,7 +90,7 @@ export default function MessageBubble({
               rel="noopener noreferrer" 
               onClick={(e) => {
                 e.stopPropagation();
-                onMarkSent(stepNumber);
+                if (onMarkSent) onMarkSent(stepNumber);
               }}
               className="btn-primary transition-enterprise px-4 py-2 text-xs font-bold flex items-center gap-2"
             >
