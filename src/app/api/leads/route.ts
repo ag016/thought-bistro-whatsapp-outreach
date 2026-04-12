@@ -63,6 +63,7 @@ export async function GET() {
         full_name:    obj['full_name']    || '',
         phone_number: obj['phone_number'] || '',
         company_name: obj['company_name'] || '',
+        internal_tag:   obj['internal_tag'] || '',
         created_at:   createdAt,
         metadata: {
           clinic_type:       obj['What type of clinic do you run?']                                  ?? '',
