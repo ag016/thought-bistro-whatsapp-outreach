@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-color)', padding: '24px' }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-          <button onClick={() => router.push('/')} style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>←</button>
+          <button onClick={() => router.push('/')} className="transition-enterprise" style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>←</button>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Analytics</h1>
         </div>
 
@@ -109,7 +109,7 @@ export default function AnalyticsPage() {
           <StatCard label="Conv. Rate" value={stats.total ? Math.round((stats.qualified / stats.total) * 100) + '%' : '0%'} glow />
         </div>
 
-        <div style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 24, padding: 24 }}>
+        <div className="transition-enterprise" style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 24, padding: 24 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 20 }}>ACQUISITION TIMELINE</div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
 
 function StatCard({ label, value, accent = 'var(--text-color)', glow = false }: { label: string; value: string | number; accent?: string; glow?: boolean }) {
   return (
-    <div style={{ 
+    <div className="transition-enterprise" style={{ 
       background: 'var(--surface-color)', 
       border: '1px solid var(--border-color)', 
       borderRadius: 20, 

@@ -14,7 +14,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({ lead, onSend, onPause }) => 
   const waLink = generateWhatsAppLink(lead.phone_number, currentStep.message_text);
 
   return (
-    <div className={`p-4 mb-4 rounded-2xl border transition-all ${isDue ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+    <div className={`p-4 mb-4 rounded-2xl border transition-enterprise ${isDue ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}>
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="font-bold text-lg text-gray-900">{lead.full_name}</h3>
@@ -32,7 +32,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({ lead, onSend, onPause }) => 
           href={waLink} 
           target="_blank" 
           rel="noopener noreferrer"
-          className={`flex-1 text-center py-3 rounded-xl font-semibold transition-all ${isDue ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+          className={`flex-1 text-center py-3 rounded-xl font-semibold transition-enterprise ${isDue ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
           onClick={() => isDue && onSend(lead.id)}
         >
           {isDue ? `Send Message ${currentStep.step_number}` : 'Wait for Day ' + currentStep.day_offset}
@@ -40,7 +40,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({ lead, onSend, onPause }) => 
         
         <button 
           onClick={() => onPause(lead.id)}
-          className={`px-4 py-3 rounded-xl border font-medium transition-all ${lead.status === 'paused' ? 'bg-red-100 border-red-200 text-red-600' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          className={`px-4 py-3 rounded-xl border font-medium transition-enterprise ${lead.status === 'paused' ? 'bg-red-100 border-red-200 text-red-600' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
         >
           {lead.status === 'paused' ? 'Resume' : 'Pause'}
         </button>

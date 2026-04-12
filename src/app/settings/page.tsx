@@ -30,14 +30,14 @@ export default function SettingsPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-color)', padding: '24px' }}>
       <style>{`
-        .settings-section { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 18px; padding: 20px; margin-bottom: 20px; }
+        .settings-section { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 18px; padding: 20px; margin-bottom: 20px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .settings-row { display: flex; justify-content: space-between; align-items: center; padding: '12px 0'; border-bottom: 1px solid var(--border-color); }
         .settings-row:last-child { border-bottom: none; }
       `}</style>
 
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-          <button onClick={() => router.push('/')} style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>←</button>
+          <button onClick={() => router.push('/')} className="transition-enterprise" style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>←</button>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Settings</h1>
         </div>
 
@@ -46,7 +46,7 @@ export default function SettingsPage() {
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>ACCOUNT</div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: 'var(--surface-color)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
+            <div className="transition-enterprise" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: 'var(--surface-color)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
               <img src="https://www.svgrepo.com/show/475656/google-color.svg" style={{ width: 24 }} alt="Google" />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{session?.user?.name || 'Not Signed In'}</div>
@@ -55,6 +55,7 @@ export default function SettingsPage() {
               {session && (
                 <button 
                   onClick={() => signOut({ callbackUrl: '/' })} 
+                  className="transition-enterprise"
                   style={{ padding: '6px 12px', borderRadius: 8, background: 'transparent', border: '1px solid var(--danger-color)', color: 'var(--danger-color)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                   Disconnect
                 </button>

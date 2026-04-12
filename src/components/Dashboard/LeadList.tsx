@@ -46,6 +46,7 @@ export default function LeadList({ leads, onPause, onSend }: LeadListProps) {
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-color)', opacity: 0.6 }}>Filter by Tag:</span>
         <button 
           onClick={() => setTagFilter('')} 
+          className="transition-enterprise"
           style={{ 
             padding: '4px 12px', 
             borderRadius: 20, 
@@ -64,6 +65,7 @@ export default function LeadList({ leads, onPause, onSend }: LeadListProps) {
           <button 
             key={tag} 
             onClick={() => setTagFilter(tag || '')} 
+            className="transition-enterprise"
             style={{ 
               padding: '4px 12px', 
               borderRadius: 20, 
@@ -143,6 +145,7 @@ export default function LeadList({ leads, onPause, onSend }: LeadListProps) {
               <td>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onSend(lead.id); }}
+                  className="transition-enterprise"
                   style={{ 
                     padding: '6px 12px', 
                     borderRadius: 8, 

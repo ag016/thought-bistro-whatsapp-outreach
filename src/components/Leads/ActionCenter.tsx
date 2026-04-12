@@ -100,7 +100,7 @@ export default function ActionCenter({
           <button 
             onClick={handleAddNote} 
             disabled={!newNote.trim()}
-            className="btn-primary px-4 py-2 text-xs"
+            className="btn-primary transition-enterprise px-4 py-2 text-xs"
             style={{ backgroundColor: 'var(--warning-color)', color: 'var(--bg-color)' }}
           >
             Add
@@ -138,14 +138,14 @@ export default function ActionCenter({
               <button 
                 onClick={handleBookCall} 
                 disabled={booking || !callDate} 
-                className="btn-primary flex-1 py-3 text-xs"
+                className="btn-primary transition-enterprise flex-1 py-3 text-xs"
                 style={{ backgroundColor: 'var(--info-color)', color: 'var(--bg-color)' }}
               >
                 {booking ? 'Scheduling...' : bookSuccess ? `✓ ${bookSuccess}` : 'Add to Google Calendar'}
               </button>
               <button 
                 onClick={onDeleteEvent} 
-                className="px-3 py-3 rounded-xl border border-red-500/50 text-red-500 hover:bg-red-500/10 transition-colors text-lg"
+                className="transition-enterprise px-3 py-3 rounded-xl border border-red-500/50 text-red-500 hover:bg-red-500/10 transition-colors text-lg"
               >
                 🗑
               </button>
@@ -171,14 +171,14 @@ export default function ActionCenter({
                   href={waLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-white/10 text-slate-200 text-xs font-semibold no-underline cursor-pointer transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5"
+                  className="transition-enterprise flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-white/10 text-slate-200 text-xs font-semibold no-underline cursor-pointer transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5"
                 >
                   {tpl.name}
                   <span className="text-sm opacity-50 group-hover:opacity-100 transition-opacity">↗</span>
                 </a>
                 <button 
                   onClick={(e) => { e.preventDefault(); setPreviewTemplate(personalised); }}
-                  className="absolute right-12 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500 underline cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="transition-enterprise absolute right-12 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500 underline cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   Preview
                 </button>
@@ -188,10 +188,10 @@ export default function ActionCenter({
         </div>
 
         {previewTemplate && (
-          <div className="mt-4 p-3 glass-surface border-emerald-500/50 rounded-xl text-xs text-slate-300 whitespace-pre-wrap relative animate-fade-in">
+          <div className="mt-4 p-3 glass-surface transition-enterprise border-emerald-500/50 rounded-xl text-xs text-slate-300 whitespace-pre-wrap relative animate-fade-in">
             <button 
               onClick={() => setPreviewTemplate(null)} 
-              className="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 border-none rounded-full w-5 h-5 cursor-pointer text-xs font-bold hover:scale-110 transition-transform"
+              className="transition-enterprise absolute -top-2 -right-2 bg-emerald-500 text-slate-900 border-none rounded-full w-5 h-5 cursor-pointer text-xs font-bold hover:scale-110 transition-transform"
             >
               ×
             </button>

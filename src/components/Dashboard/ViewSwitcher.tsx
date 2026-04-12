@@ -16,12 +16,14 @@ export default function ViewSwitcher({ view, setView }: ViewSwitcherProps) {
       borderRadius: 14, 
       padding: 4, 
       maxWidth: 200,
-      marginBottom: 20 
+      marginBottom: 20,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
     }}>
       {(['list', 'board'] as const).map(v => (
         <button 
           key={v} 
           onClick={() => setView(v)} 
+          className="transition-enterprise"
           style={{ 
             flex: 1, 
             padding: '8px 0', 

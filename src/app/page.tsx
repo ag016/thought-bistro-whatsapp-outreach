@@ -221,7 +221,7 @@ export default function App() {
             <span style={{ fontWeight: 800, fontSize: 20, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>Thought Bistro</span>
             <span style={{ fontSize: 12, color: 'var(--accent-color)', marginLeft: 10 }}>Lead Machine · {leads.length} leads loaded</span>
           </div>
-          <button onClick={handleSync} disabled={syncing || loading} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontSize: 13, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
+          <button onClick={handleSync} disabled={syncing || loading} className="transition-enterprise" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontSize: 13, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
             <span style={{ display: 'inline-block', animation: syncing ? 'spin 0.8s linear infinite' : 'none' }}>⟳</span>
             {syncing ? 'Syncing…' : 'Sync Sheet'}
           </button>
@@ -249,7 +249,7 @@ export default function App() {
         <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 14, padding: 4, maxWidth: 400 }}>
             {(['due', 'all'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.2s', background: tab === t ? 'var(--accent-color)' : 'transparent', color: tab === t ? 'var(--bg-color)' : 'var(--text-color)', opacity: tab === t ? 1 : 0.5 }}>
+              <button key={t} onClick={() => setTab(t)} className="transition-enterprise" style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.2s', background: tab === t ? 'var(--accent-color)' : 'transparent', color: tab === t ? 'var(--bg-color)' : 'var(--text-color)', opacity: tab === t ? 1 : 0.5 }}>
                 {t === 'due' ? `Due Today (${dueLeads.length})` : `All Leads (${leads.length})`}
               </button>
             ))}
@@ -355,13 +355,14 @@ function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: bool
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {NUMPAD.flat().map((d, i) => (
             <button key={i} onClick={() => d === '⌫' ? onDelete() : d !== '' ? onInput(d) : undefined}
+              className="transition-enterprise"
               style={{ height: 64, borderRadius: 18, border: d === '' ? 'none' : '1px solid var(--border-color)', background: d === '' ? 'transparent' : 'var(--surface-color)', color: d === '⌫' ? 'var(--text-color)' : 'var(--text-color)', opacity: d === '⌫' ? 0.6 : 1, fontSize: d === '⌫' ? 22 : 24, fontWeight: 600, cursor: d === '' ? 'default' : 'pointer' }}>
               {d}
             </button>
           ))}
         </div>
         <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px dotted var(--border-color)', width: '100%' }}>
-          <button onClick={() => signIn('google')} style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: 'var(--text-color)', color: 'var(--bg-color)', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
+          <button onClick={() => signIn('google')} className="transition-enterprise" style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: 'var(--text-color)', color: 'var(--bg-color)', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: 18 }} />
              Sign in with Google
           </button>

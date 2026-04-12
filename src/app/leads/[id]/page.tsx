@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { NURTURE_SEQUENCE, generateWhatsAppLink, getDaysUntilDue } from '@/lib/nurture';
-import InfoField from './InfoField';
+import { NURTURE_SEQUENCE, getDaysUntilDue } from '@/lib/nurture';
 import MessageBubble from '@/components/Leads/MessageBubble';
 import ActionCenter from '@/components/Leads/ActionCenter';
 import { Skeleton } from '@/components/UI/Skeleton';
@@ -71,6 +70,15 @@ function fmt(str: string) {
   }
   try { return new Date(str).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
   catch { return str; }
+}
+
+function InfoField({ label, value, fullWidth = false }: { label: string; value: string; fullWidth?: boolean }) {
+  return (
+    <div style={{ display: fullWidth ? 'block' : 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.9 }}>{value}</div>
+    </div>
+  );
 }
 
 export default function LeadDetail({ params }: { params: { id: string } }) {
@@ -212,7 +220,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      const noteText = `🗓 Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}`;
+      const noteText = `Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}`;
       const now = new Date().toISOString();
       setNotes(prev => [...prev, { lead_id: lead.id, note_text: noteText, created_at: now, source: 'system' }]);
       fetch('/api/notes', {
@@ -259,37 +267,41 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     }
   };
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '24px' }}>
-       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-          <Skeleton variant="rect" width={40} height={40} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Skeleton variant="text" width={200} />
-            <Skeleton variant="text" width={120} />
-          </div>
-       </div>
-       <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr 320px', gap: '24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Skeleton variant="rect" height={120} />
-            <Skeleton variant="rect" height={300} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Skeleton variant="rect" height={600} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Skeleton variant="rect" height={600} />
-          </div>
-       </div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '24px' }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
+            <Skeleton variant="rect" width={40} height={40} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Skeleton variant="text" width={200} />
+              <Skeleton variant="text" width={120} />
+            </div>
+         </div>
+         <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr 320px', gap: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Skeleton variant="rect" height={120} />
+              <Skeleton variant="rect" height={300} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Skeleton variant="rect" height={600} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Skeleton variant="rect" height={600} />
+            </div>
+         </div>
+      </div>
+    );
+  }
 
-  if (!lead) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--accent-color)', gap: 12 }}>
-      <div style={{ fontSize: 40 }}>404</div>
-      <div>Lead not found</div>
-      <button onClick={() => router.push('/')} className="btn-primary" style={{ marginTop: 8, padding: '10px 20px' }}>Back to Dashboard</button>
-    </div>
-  );
+  if (!lead) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--accent-color)', gap: 12 }}>
+        <div style={{ fontSize: 40 }}>404</div>
+        <div>Lead not found</div>
+        <button onClick={() => router.push('/')} className="btn-primary transition-enterprise" style={{ marginTop: 8, padding: '10px 20px' }}>Back to Dashboard</button>
+      </div>
+    );
+  }
 
   const isCompleted = lead.current_step >= NURTURE_SEQUENCE.length;
   const daysUntil   = getDaysUntilDue(lead);
@@ -297,12 +309,9 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-color)', paddingBottom: 60 }}>
-      {/* Styles moved to globals.css */}
-
-
-      {/* ── Header ── */}
+      {/* --- Header --- */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--bg-color)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border-color)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button onClick={() => router.push('/')} style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700, transition: 'all 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>←</button>
+        <button onClick={() => router.push('/')} className="transition-enterprise" style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700, transition: 'all 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>&lt;</button>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-color)', opacity: 0.5, marginBottom: 4 }}>
             <span style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>Dashboard</span>
@@ -313,8 +322,8 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
           <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6 }}>{lead.company_name || 'No company'} · {lead.phone_number}</div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button onClick={handlePause} style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--surface-color)', color: lead.status === 'paused' ? 'var(--accent-color)' : 'var(--text-color)', opacity: lead.status === 'paused' ? 1 : 0.6, fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s ease' }}>
-            {lead.status === 'paused' ? '▶ Resume' : '⏸ Pause'}
+          <button onClick={handlePause} className="transition-enterprise" style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--surface-color)', color: lead.status === 'paused' ? 'var(--accent-color)' : 'var(--text-color)', opacity: lead.status === 'paused' ? 1 : 0.6, fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s ease' }}>
+            {lead.status === 'paused' ? 'Resume' : 'Pause'}
           </button>
         </div>
       </div>
@@ -323,12 +332,14 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
           <button 
             onClick={() => setLeftCollapsed(!leftCollapsed)} 
+            className="transition-enterprise"
             style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-color)', background: leftCollapsed ? 'var(--accent-color)' : 'var(--surface-color)', color: leftCollapsed ? 'var(--bg-color)' : 'var(--text-color)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
           >
             {leftCollapsed ? 'Show Info' : 'Hide Info'}
           </button>
           <button 
             onClick={() => setRightCollapsed(!rightCollapsed)} 
+            className="transition-enterprise"
             style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-color)', background: rightCollapsed ? 'var(--accent-color)' : 'var(--surface-color)', color: rightCollapsed ? 'var(--bg-color)' : 'var(--text-color)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
           >
             {rightCollapsed ? 'Show Actions' : 'Hide Actions'}
@@ -337,7 +348,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
 
         <div className="detail-grid">
 
-          {/* ── LEFT PANEL: Lead Info & Identity ── */}
+          {/* --- LEFT PANEL: Lead Info & Identity --- */}
           {!leftCollapsed && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div className="pane-card">
@@ -413,9 +424,9 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                 )}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* ── CENTER PANEL: Message Timeline ── */}
+          {/* --- CENTER PANEL: Message Timeline --- */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="pane-card">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>MESSAGE TIMELINE</div>
@@ -472,7 +483,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* ── RIGHT PANEL: Action Center ── */}
+          {/* --- RIGHT PANEL: Action Center --- */}
           {!rightCollapsed && (
             <ActionCenter 
               lead={lead}
@@ -499,7 +510,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                   body: JSON.stringify({ leadName: lead.full_name, phone: lead.phone_number, dateStr: callDate, summary: eventTitle || undefined, description: eventNote || undefined })
                 });
                 if (!res.ok) throw new Error('Failed to schedule');
-                const noteText = `🗓 Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}`;
+                const noteText = `Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}`;
                 const now = new Date().toISOString();
                 setNotes(prev => [...prev, { lead_id: lead.id, note_text: noteText, created_at: now, source: 'system' }]);
                 fetch('/api/notes', {

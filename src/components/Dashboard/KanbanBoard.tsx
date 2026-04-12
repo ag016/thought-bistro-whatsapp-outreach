@@ -81,6 +81,7 @@ export default function KanbanBoard({ leads, onUpdateTag }: KanbanBoardProps) {
                 <div 
                   key={lead.id} 
                   onClick={() => router.push(`/leads/${lead.id}`)}
+                  className="transition-enterprise"
                   style={{ 
                     background: 'var(--surface-color)', 
                     border: '1px solid var(--border-color)', 

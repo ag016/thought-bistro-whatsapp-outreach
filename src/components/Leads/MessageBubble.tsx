@@ -32,7 +32,7 @@ export default function MessageBubble({
 
   return (
     <div 
-      className={`flex flex-col gap-2 p-3 rounded-2xl transition-all cursor-pointer hover:scale-[1.01] ${
+      className={`flex flex-col gap-2 p-3 rounded-2xl transition-enterprise cursor-pointer hover:scale-[1.01] ${
         isExpanded 
           ? 'bg-slate-800 border-2 border-emerald-500 shadow-lg ring-1 ring-emerald-500/20' 
           : isCurrentTarget 
@@ -77,7 +77,7 @@ export default function MessageBubble({
           <div className="flex gap-2 justify-end">
             <button 
               onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} 
-              className="px-3 py-2 rounded-lg border border-white/10 bg-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-600 transition-colors"
+              className="transition-enterprise px-3 py-2 rounded-lg border border-white/10 bg-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-600 transition-colors"
             >
               Cancel
             </button>
@@ -89,7 +89,7 @@ export default function MessageBubble({
                 e.stopPropagation();
                 onMarkSent(stepNumber);
               }}
-              className="btn-primary px-4 py-2 text-xs font-bold flex items-center gap-2"
+              className="btn-primary transition-enterprise px-4 py-2 text-xs font-bold flex items-center gap-2"
             >
               Confirm & Open WhatsApp
               <span className="text-xs">↗</span>
