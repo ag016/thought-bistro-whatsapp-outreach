@@ -56,21 +56,16 @@ const AUTH_KEY    = 'tb_auth_session';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getNurtureMap(): NurtureMap {
-  try { return JSON.parse(localStorage.getItem(NURTURE_KEY) ?? '{}') as NurtureMap; }
-  catch { return {}; }
-}
-
-function saveNurtureMap(map: NurtureMap) {
-  localStorage.setItem(NURTURE_KEY, JSON.stringify(map));
-}
+// Removed localStorage helpers as we now use Sheets for persistence
 
 function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
   return sheetLeads
     .filter(sl => sl.full_name || sl.phone_number)
     .map(sl => {
-      const nurture = nurtureMap[sl.sheet_id] ?? { current_step: 0, status: 'active' as LeadStatus, last_sent_at: null };
-      return { id: sl.sheet_id, sheet_id: sl.sheet_id, full_name: sl.full_name, phone_number: sl.phone_number, company_name: sl.company_name, created_at: sl.created_at, metadata: sl.metadata, ...nurture } as Lead;
+      const nurture = nurtureMap[sl.sheet_id];
+      let currentStep = parseInt(String(nurture?.current_step ?? '0'));
+      if (isNaN(currentStep)) currentStep = 0;
+      return { id: sl.sheet_id, sheet_id: sl.sheet_id, full_name: sl.full_name, phone_number: sl.phone_number, company_name: sl.company_name, created_at: sl.created_at, metadata: sl.metadata, current_step: currentStep, status: nurture?.status || 'active', last_sent_at: nurture?.last_sent_at || null } as Lead;
     })
     .reverse(); // LIFO — newest leads (bottom of sheet) appear first
 }
@@ -101,10 +96,14 @@ export default function App() {
   const loadLeads = useCallback(async () => {
     setLoading(true); setApiError(null);
     try {
-      const res  = await fetch('/api/leads');
-      const data = await res.json() as { leads?: SheetLead[]; error?: string };
-      if (!res.ok) throw new Error(data.error ?? 'Failed to fetch leads');
-      setLeads(mergeLeads(data.leads ?? [], getNurtureMap()));
+      const [leadsRes, nurtureRes] = await Promise.all([
+        fetch('/api/leads'),
+        fetch('/api/nurture')
+      ]);
+      const data = await leadsRes.json() as { leads?: SheetLead[]; error?: string };
+      const nData = await nurtureRes.json() as { nurture?: NurtureMap };
+      if (!leadsRes.ok) throw new Error(data.error ?? 'Failed to fetch leads');
+      setLeads(mergeLeads(data.leads ?? [], nData.nurture ?? {}));
     } catch (e) { setApiError(e instanceof Error ? e.message : 'Unknown error'); }
     finally { setLoading(false); }
   }, []);
@@ -139,22 +138,36 @@ export default function App() {
   }, [authed, inputPin]);
 
   const handleSend     = (id: string) => setAwaitingSent(id);
-  const handleMarkSent = (id: string) => {
-    const map = getNurtureMap(); const lead = leads.find(l => l.id === id); if (!lead) return;
-    const entry = map[id] ?? { current_step: lead.current_step, status: lead.status, last_sent_at: null };
-    const nextStep = Math.min(entry.current_step + 1, NURTURE_SEQUENCE.length);
-    map[id] = { ...entry, current_step: nextStep, last_sent_at: new Date().toISOString() };
-    saveNurtureMap(map);
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, current_step: nextStep, last_sent_at: map[id].last_sent_at } : l));
+  const handleMarkSent = async (id: string) => {
+    const lead = leads.find(l => l.id === id); if (!lead) return;
+    const nextStep = Math.min(lead.current_step + 1, NURTURE_SEQUENCE.length);
+    const now = new Date().toISOString();
+    
+    // Optimistic update
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, current_step: nextStep, last_sent_at: now } : l));
     setAwaitingSent(null);
+
+    // Persist
+    await fetch('/api/nurture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: id, currentStep: nextStep, lastSentAt: now, msgIndex: lead.current_step + 1, sentAt: now })
+    });
   };
-  const handlePause = (id: string) => {
-    const map = getNurtureMap(); const lead = leads.find(l => l.id === id); if (!lead) return;
-    const entry = map[id] ?? { current_step: lead.current_step, status: lead.status, last_sent_at: lead.last_sent_at };
-    const newStatus = entry.status === 'paused' ? 'active' : 'paused';
-    map[id] = { ...entry, status: newStatus };
-    saveNurtureMap(map);
+
+  const handlePause = async (id: string) => {
+    const lead = leads.find(l => l.id === id); if (!lead) return;
+    const newStatus = lead.status === 'paused' ? 'active' : 'paused';
+    
+    // Optimistic update
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
+
+    // Persist
+    await fetch('/api/nurture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: id, status: newStatus })
+    });
   };
 
   const dueLeads     = leads.filter(l => calculateIsDue(l));

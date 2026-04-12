@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { NURTURE_SEQUENCE, generateWhatsAppLink, calculateIsDue, getDaysUntilDue } from '@/lib/nurture';
+import InfoField from './InfoField';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,25 +32,14 @@ interface Lead {
   };
 }
 
-interface NurtureEntry {
-  current_step: number;
-  status: LeadStatus;
-  last_sent_at: string | null;
-  sent_history?: { step: number; sent_at: string }[];
+interface Note {
+  lead_id: string;
+  note_text: string;
+  created_at: string;
+  source: string;
 }
 
-type NurtureMap = Record<string, NurtureEntry>;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const NURTURE_KEY = 'tb_nurture_v2';
-const AUTH_KEY    = 'tb_auth_session';
-
-function getNurtureMap(): NurtureMap {
-  try { return JSON.parse(localStorage.getItem(NURTURE_KEY) ?? '{}') as NurtureMap; }
-  catch { return {}; }
-}
-function saveNurtureMap(m: NurtureMap) { localStorage.setItem(NURTURE_KEY, JSON.stringify(m)); }
+const AUTH_KEY = 'tb_auth_session';
 
 function fmt(str: string) {
   try { return new Date(str).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
@@ -60,10 +50,13 @@ function fmt(str: string) {
 
 export default function LeadDetail({ params }: { params: { id: string } }) {
   const router  = useRouter();
-  const [lead,       setLead]       = useState<Lead | null>(null);
-  const [nurture,    setNurture]    = useState<NurtureEntry | null>(null);
-  const [loading,    setLoading]    = useState(true);
-  const [awaitSent,  setAwaitSent]  = useState(false);
+  const [lead,         setLead]         = useState<Lead | null>(null);
+  const [nurtureRaw,   setNurtureRaw]   = useState<Record<string, string>>({});
+  const [notes,        setNotes]        = useState<Note[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [awaitSent,    setAwaitSent]    = useState(false);
+  const [newNote,      setNewNote]      = useState('');
+  const [addingNote,   setAddingNote]   = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem(AUTH_KEY) !== '1') {
@@ -74,44 +67,87 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   const loadLead = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch('/api/leads');
-      const data = await res.json() as { leads?: Lead[] };
-      const found = (data.leads ?? []).find(l => l.sheet_id === params.id || l.id === params.id);
+      const [leadsRes, nurtureRes, notesRes] = await Promise.all([
+        fetch('/api/leads'),
+        fetch('/api/nurture'),
+        fetch(`/api/notes?leadId=${params.id}`)
+      ]);
+      const leadsData   = await leadsRes.json() as { leads?: any[] };
+      const nurtureData = await nurtureRes.json() as { nurture?: Record<string, Record<string, string>> };
+      const notesData   = await notesRes.json() as { notes?: Note[] };
+
+      const found = (leadsData.leads ?? []).find(l => l.sheet_id === params.id || l.id === params.id);
       if (found) {
-        const map = getNurtureMap();
-        const n   = map[found.sheet_id] ?? { current_step: 0, status: 'active' as LeadStatus, last_sent_at: null, sent_history: [] };
-        setLead({ ...found, ...n });
-        setNurture(n);
+        const nMap = nurtureData.nurture ?? {};
+        const nEntry = nMap[found.sheet_id] ?? {};
+        let currentStep = parseInt(nEntry.current_step ?? '0');
+        if (isNaN(currentStep)) currentStep = 0;
+        
+        setLead({
+          ...found,
+          id: found.sheet_id,
+          current_step: currentStep,
+          status: nEntry.status || 'active',
+          last_sent_at: nEntry.last_sent_at || null
+        });
+        setNurtureRaw(nEntry);
       }
+      setNotes(notesData.notes ?? []);
     } finally { setLoading(false); }
   }, [params.id]);
 
   useEffect(() => { loadLead(); }, [loadLead]);
 
-  const handleMarkSent = () => {
-    if (!lead || !nurture) return;
-    const map   = getNurtureMap();
-    const entry = map[lead.sheet_id] ?? { current_step: lead.current_step, status: lead.status, last_sent_at: null, sent_history: [] };
-    const now   = new Date().toISOString();
-    const history = [...(entry.sent_history ?? []), { step: entry.current_step + 1, sent_at: now }];
-    const nextStep = Math.min(entry.current_step + 1, NURTURE_SEQUENCE.length);
-    const updated: NurtureEntry = { ...entry, current_step: nextStep, last_sent_at: now, sent_history: history };
-    map[lead.sheet_id] = updated;
-    saveNurtureMap(map);
-    setNurture(updated);
+  const handleMarkSent = async () => {
+    if (!lead) return;
+    const nextStep = Math.min(lead.current_step + 1, NURTURE_SEQUENCE.length);
+    const now = new Date().toISOString();
+    
+    // Optimistic UI update
     setLead(prev => prev ? { ...prev, current_step: nextStep, last_sent_at: now } : prev);
+    setNurtureRaw(prev => ({ ...prev, current_step: String(nextStep), last_sent_at: now, [`msg${nextStep}_sent`]: now }));
     setAwaitSent(false);
+
+    // Persist
+    await fetch('/api/nurture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, currentStep: nextStep, lastSentAt: now, msgIndex: nextStep, sentAt: now })
+    });
   };
 
-  const handlePause = () => {
-    if (!lead || !nurture) return;
-    const map    = getNurtureMap();
-    const entry  = map[lead.sheet_id] ?? nurture;
-    const status = entry.status === 'paused' ? 'active' : 'paused';
-    map[lead.sheet_id] = { ...entry, status };
-    saveNurtureMap(map);
-    setNurture(prev => prev ? { ...prev, status } : prev);
-    setLead(prev  => prev ? { ...prev, status } : prev);
+  const handlePause = async () => {
+    if (!lead) return;
+    const newStatus = lead.status === 'paused' ? 'active' : 'paused';
+    
+    // Optimistic UI
+    setLead(prev => prev ? { ...prev, status: newStatus } : prev);
+    setNurtureRaw(prev => ({ ...prev, status: newStatus }));
+
+    // Persist
+    await fetch('/api/nurture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, status: newStatus })
+    });
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.trim() || !lead) return;
+    setAddingNote(true);
+    const text = newNote.trim();
+    const now = new Date().toISOString();
+    
+    // Optimistic
+    setNotes(prev => [...prev, { lead_id: lead.id, note_text: text, created_at: now, source: 'manual' }]);
+    setNewNote('');
+
+    await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, noteText: text, createdAt: now })
+    });
+    setAddingNote(false);
   };
 
   if (loading) return (
@@ -129,13 +165,12 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   );
 
   const isDue       = calculateIsDue(lead);
-  const isCompleted = (nurture?.current_step ?? 0) >= NURTURE_SEQUENCE.length;
-  const stepIdx     = Math.min(nurture?.current_step ?? 0, NURTURE_SEQUENCE.length - 1);
+  const isCompleted = lead.current_step >= NURTURE_SEQUENCE.length;
+  const stepIdx     = Math.min(lead.current_step, NURTURE_SEQUENCE.length - 1);
   const stepData    = NURTURE_SEQUENCE[stepIdx];
   const canSend     = isDue && lead.status === 'active' && !isCompleted;
   const waLink      = generateWhatsAppLink(lead.phone_number, stepData.message_text);
   const daysUntil   = getDaysUntilDue(lead);
-  const sentHistory = nurture?.sent_history ?? [];
   const m           = lead.metadata;
 
   return (
@@ -172,20 +207,55 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
               <div style={{ fontSize: 11, fontWeight: 700, color: '#25D366', letterSpacing: '0.08em', marginBottom: 14 }}>NURTURE PROGRESS</div>
               <div style={{ display: 'flex', gap: 3, marginBottom: 10 }}>
                 {NURTURE_SEQUENCE.map((_, i) => (
-                  <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < (nurture?.current_step ?? 0) ? '#25D366' : i === (nurture?.current_step ?? 0) && !isCompleted ? 'rgba(37,211,102,0.35)' : '#1a2e1a' }} />
+                  <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < lead.current_step ? '#25D366' : i === lead.current_step && !isCompleted ? 'rgba(37,211,102,0.35)' : '#1a2e1a' }} />
                 ))}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span style={{ color: '#ecfdf5', fontWeight: 700 }}>Step {Math.min((nurture?.current_step ?? 0) + 1, 10)} / 10</span>
+                <span style={{ color: '#ecfdf5', fontWeight: 700 }}>Step {Math.min(lead.current_step + 1, 10)} / 10</span>
                 {isCompleted
                   ? <span style={{ color: '#25D366', fontWeight: 700 }}>Sequence complete</span>
                   : canSend
                     ? <span style={{ color: '#25D366', fontWeight: 700 }}>Due now</span>
                     : <span style={{ color: '#5a8a5a' }}>Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
               </div>
-              {nurture?.last_sent_at && (
-                <div style={{ fontSize: 11, color: '#3a5a3a', marginTop: 6 }}>Last sent: {fmt(nurture.last_sent_at)}</div>
+              {lead.last_sent_at && (
+                <div style={{ fontSize: 11, color: '#3a5a3a', marginTop: 6 }}>Last sent: {fmt(lead.last_sent_at)}</div>
               )}
+            </div>
+
+            {/* Notes Section */}
+            <div style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: 18, padding: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#eab308', letterSpacing: '0.08em', marginBottom: 14 }}>NOTES</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16, maxHeight: 300, overflowY: 'auto' }}>
+                {notes.length === 0 ? (
+                  <div style={{ fontSize: 13, color: '#3a5a3a', fontStyle: 'italic' }}>No notes yet.</div>
+                ) : (
+                  notes.map((note, i) => (
+                    <div key={i} style={{ background: '#1a1a0f', border: '1px solid #2d2d1f', borderRadius: 12, padding: '12px' }}>
+                      <div style={{ fontSize: 13, color: '#fef08a', lineHeight: 1.5, marginBottom: 6 }}>{note.note_text}</div>
+                      <div style={{ fontSize: 10, color: '#a1a1aa' }}>
+                        {note.source === 'imported' ? 'Imported from Sheet' : fmt(note.created_at)}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input 
+                  type="text" 
+                  value={newNote} 
+                  onChange={e => setNewNote(e.target.value)}
+                  placeholder="Add a note..." 
+                  onKeyDown={e => e.key === 'Enter' && handleAddNote()}
+                  style={{ flex: 1, background: '#060d06', border: '1px solid #1a2e1a', borderRadius: 10, padding: '10px 14px', color: '#ecfdf5', fontSize: 13 }}
+                />
+                <button 
+                  onClick={handleAddNote} 
+                  disabled={addingNote || !newNote.trim()}
+                  style={{ padding: '0 16px', borderRadius: 10, background: '#eab308', color: '#422006', fontWeight: 700, border: 'none', cursor: (addingNote || !newNote.trim()) ? 'not-allowed' : 'pointer', opacity: (addingNote || !newNote.trim()) ? 0.5 : 1 }}>
+                  Add
+                </button>
+              </div>
             </div>
 
             {/* Lead Info */}
@@ -206,13 +276,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #1a2e1a' }}>
                   <div style={{ fontSize: 10, color: '#4a7a4a', marginBottom: 6, fontWeight: 700 }}>CURRENT LEAD SITUATION</div>
                   <div style={{ fontSize: 13, color: '#8ab48a', lineHeight: 1.6 }}>{m.lead_quality_desc}</div>
-                </div>
-              )}
-
-              {m.notes && (
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #1a2e1a' }}>
-                  <div style={{ fontSize: 10, color: '#4a7a4a', marginBottom: 6, fontWeight: 700 }}>NOTES FROM LEAD</div>
-                  <div style={{ fontSize: 13, color: '#8ab48a', lineHeight: 1.6 }}>{m.notes}</div>
                 </div>
               )}
             </div>
@@ -255,10 +318,10 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {NURTURE_SEQUENCE.map((step, i) => {
-                  const sentEntry  = sentHistory.find(h => h.step === i + 1);
-                  const isSent     = i < (nurture?.current_step ?? 0);
-                  const isCurrent  = i === (nurture?.current_step ?? 0) && !isCompleted;
-                  const isFuture   = i > (nurture?.current_step ?? 0) || isCompleted && i >= (nurture?.current_step ?? 0);
+                  const sentTimestamp = nurtureRaw[`msg${step.step_number}_sent`];
+                  const isSent     = i < lead.current_step;
+                  const isCurrent  = i === lead.current_step && !isCompleted;
+                  const isFuture   = i > lead.current_step || isCompleted && i >= lead.current_step;
                   const daysFromNow = Math.max(0, step.day_offset - Math.ceil((Date.now() - new Date(lead.created_at).getTime()) / 86400000));
 
                   return (
@@ -283,10 +346,10 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                           </div>
                         </div>
 
-                        {isSent && sentEntry && (
-                          <div style={{ fontSize: 11, color: '#25D36680', marginBottom: 6 }}>Sent {fmt(sentEntry.sent_at)}</div>
+                        {isSent && sentTimestamp && (
+                          <div style={{ fontSize: 11, color: '#25D36680', marginBottom: 6 }}>Sent {fmt(sentTimestamp)}</div>
                         )}
-                        {isSent && !sentEntry && (
+                        {isSent && !sentTimestamp && (
                           <div style={{ fontSize: 11, color: '#3a5a3a', marginBottom: 6 }}>Sent</div>
                         )}
                         {isCurrent && !isSent && (
