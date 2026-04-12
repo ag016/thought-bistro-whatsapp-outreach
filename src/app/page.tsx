@@ -186,22 +186,32 @@ export default function App() {
   if (!isAccessGranted) return <PinScreen pin={pin} shake={pinShake} onInput={inputPin} onDelete={deletePin} />;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#060d06', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', paddingBottom: 80 }}>
       <style>{`
         .stats-grid   { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
         .leads-grid   { display:grid; grid-template-columns:1fr; gap:16px; }
-        @media(min-width:768px)  { .stats-grid { grid-template-columns:repeat(4,1fr); } .leads-grid { grid-template-columns:1fr 1fr; } }
-        @media(min-width:1280px) { .leads-grid { grid-template-columns:1fr 1fr 1fr; } }
+        .lead-card    { transition: transform 0.2s, box-shadow 0.2s; }
+        .lead-card:hover { transform: translateY(-4px); }
+        .lead-card-priority { grid-column: span 1; }
+        @media(min-width:768px)  { 
+          .stats-grid { grid-template-columns:repeat(4,1fr); } 
+          .leads-grid { grid-template-columns:1fr 1fr; } 
+          .lead-card-priority { grid-column: span 2; }
+        }
+        @media(min-width:1280px) { 
+          .leads-grid { grid-template-columns:1fr 1fr 1fr; } 
+          .lead-card-priority { grid-column: span 2; }
+        }
       `}</style>
 
       {/* ── Sticky Header ── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(6,13,6,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid #1a2e1a', padding: '14px 24px' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--surface-color), transparent 10%)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-color)', padding: '14px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <span style={{ fontWeight: 800, fontSize: 20, color: '#ecfdf5', letterSpacing: '-0.3px' }}>Thought Bistro</span>
-            <span style={{ fontSize: 12, color: '#25D366', marginLeft: 10 }}>Lead Machine · {leads.length} leads loaded</span>
+            <span style={{ fontWeight: 800, fontSize: 20, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>Thought Bistro</span>
+            <span style={{ fontSize: 12, color: 'var(--accent-color)', marginLeft: 10 }}>Lead Machine · {leads.length} leads loaded</span>
           </div>
-          <button onClick={handleSync} disabled={syncing || loading} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: '#0d1a0d', border: '1px solid #1a2e1a', color: '#25D366', fontSize: 13, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
+          <button onClick={handleSync} disabled={syncing || loading} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontSize: 13, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
             <span style={{ display: 'inline-block', animation: syncing ? 'spin 0.8s linear infinite' : 'none' }}>⟳</span>
             {syncing ? 'Syncing…' : 'Sync Sheet'}
           </button>
@@ -226,9 +236,9 @@ export default function App() {
         )}
 
         {/* ── Tabs ── */}
-        <div style={{ display: 'flex', background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: 14, padding: 4, marginBottom: 20, maxWidth: 400 }}>
+        <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 14, padding: 4, marginBottom: 20, maxWidth: 400 }}>
           {(['due', 'all'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.2s', background: tab === t ? '#25D366' : 'transparent', color: tab === t ? '#060d06' : '#5a8a5a' }}>
+            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.2s', background: tab === t ? 'var(--accent-color)' : 'transparent', color: tab === t ? 'var(--bg-color)' : 'var(--text-color)', opacity: tab === t ? 1 : 0.5 }}>
               {t === 'due' ? `Due Today (${dueLeads.length})` : `All Leads (${leads.length})`}
             </button>
           ))}
@@ -259,7 +269,7 @@ export default function App() {
       </div>
 
       {/* ── Bottom Nav ── */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(6,13,6,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid #1a2e1a', padding: '12px 0 20px', display: 'flex', justifyContent: 'space-around' }}>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'color-mix(in srgb, var(--surface-color), transparent 5%)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border-color)', padding: '12px 0 20px', display: 'flex', justifyContent: 'space-around' }}>
         {[
           { icon: '🏠', label: 'Dashboard', path: '/' }, 
           { icon: '📊', label: 'Analytics', path: '/analytics' }, 
@@ -271,7 +281,7 @@ export default function App() {
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}
           >
             <span style={{ fontSize: 22 }}>{item.icon}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: item.path === '/' ? '#25D366' : '#3a5a3a' }}>{item.label}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: item.path === '/' ? 'var(--accent-color)' : 'var(--text-color)', opacity: item.path === '/' ? 1 : 0.5 }}>{item.label}</span>
           </div>
         ))}
       </div>
@@ -297,18 +307,28 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
 
   return (
     <div
-      className="animate-fade-in"
+      className={`animate-fade-in lead-card ${isDue ? 'lead-card-priority' : ''}`}
       onClick={() => router.push(`/leads/${lead.id}`)}
-      style={{ cursor: 'pointer', background: '#0d1a0d', border: `1px solid ${lead.status === 'paused' ? '#2d1f0a' : canSend ? '#25D36635' : '#1a2e1a'}`, borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: canSend ? '0 0 28px rgba(37,211,102,0.07)' : 'none', transition: 'transform 0.2s, box-shadow 0.2s' }}
+      style={{ 
+        cursor: 'pointer', 
+        background: 'var(--surface-color)', 
+        border: `1px solid ${lead.status === 'paused' ? 'var(--border-color)' : canSend ? 'var(--accent-color)' : 'var(--border-color)'}`, 
+        borderRadius: 20, 
+        overflow: 'hidden', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        boxShadow: canSend ? `0 0 28px color-mix(in srgb, var(--accent-color), transparent 90%)` : 'none', 
+        transition: 'transform 0.2s, box-shadow 0.2s' 
+      }}
     >
 
       {/* ── Card Header ── */}
       <div style={{ padding: '16px 16px 12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
           <div style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: '#ecfdf5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.full_name || 'Unknown Lead'}</div>
-            <div style={{ fontSize: 12, color: '#5a8a5a', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.company_name || '—'}</div>
-            <div style={{ fontSize: 11, color: '#3a5a3a', marginTop: 2 }}>📞 {lead.phone_number}</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.full_name || 'Unknown Lead'}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.company_name || '—'}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.4, marginTop: 2 }}>📞 {lead.phone_number}</div>
           </div>
           <StatusBadge status={lead.status} isDue={isDue} isCompleted={isCompleted} />
         </div>
@@ -316,18 +336,18 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
         {/* Step progress */}
         <div style={{ display: 'flex', gap: 3, marginBottom: 6 }}>
           {NURTURE_SEQUENCE.map((_, i) => (
-            <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < lead.current_step ? '#25D366' : i === lead.current_step && !isCompleted ? 'rgba(37,211,102,0.35)' : '#1a2e1a' }} />
+            <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < lead.current_step ? 'var(--accent-color)' : i === lead.current_step && !isCompleted ? 'color-mix(in srgb, var(--accent-color), transparent 65%)' : 'var(--border-color)' }} />
           ))}
         </div>
-        <div style={{ fontSize: 11, color: '#3a5a3a' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.4 }}>
           Step {Math.min(lead.current_step + 1, 10)}/10 · Day {stepData.day_offset}
-          {lead.last_sent_at && <span style={{ marginLeft: 8, color: '#2a4a2a' }}>· Last sent {formatDate(lead.last_sent_at)}</span>}
+          {lead.last_sent_at && <span style={{ marginLeft: 8, color: 'var(--text-color)', opacity: 0.3 }}>· Last sent {formatDate(lead.last_sent_at)}</span>}
         </div>
       </div>
 
       {/* ── Lead Intel ── */}
-      <div style={{ margin: '0 12px', background: '#0a150a', borderRadius: 12, padding: 12, marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#25D366', letterSpacing: '0.08em', marginBottom: 8 }}>LEAD INTEL</div>
+      <div style={{ margin: '0 12px', background: 'color-mix(in srgb, var(--surface-color), black 20%)', borderRadius: 12, padding: 12, marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 8 }}>LEAD INTEL</div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
           {m.clinic_type && (
@@ -345,28 +365,28 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
         </div>
 
         {m.lead_quality_desc && (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #1a2e1a' }}>
-            <div style={{ fontSize: 10, color: '#4a7a4a', marginBottom: 3 }}>CURRENT LEAD SITUATION</div>
-            <div style={{ fontSize: 12, color: '#8ab48a', lineHeight: 1.5 }}>{m.lead_quality_desc}</div>
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 3 }}>CURRENT LEAD SITUATION</div>
+            <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.8, lineHeight: 1.5 }}>{m.lead_quality_desc}</div>
           </div>
         )}
 
         {m.notes && (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #1a2e1a' }}>
-            <div style={{ fontSize: 10, color: '#4a7a4a', marginBottom: 3 }}>NOTES</div>
-            <div style={{ fontSize: 12, color: '#8ab48a', lineHeight: 1.5 }}>{m.notes}</div>
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 3 }}>NOTES</div>
+            <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.8, lineHeight: 1.5 }}>{m.notes}</div>
           </div>
         )}
 
         {(m.ad_name || m.campaign_name) && (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #1a2e1a', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {m.campaign_name && <MiniChip label={`📢 ${m.campaign_name}`} />}
             {m.ad_name       && <MiniChip label={`🎯 ${m.ad_name}`} />}
           </div>
         )}
 
         {(m.india_time || lead.created_at) && (
-          <div style={{ marginTop: 6, fontSize: 11, color: '#2a4a2a' }}>
+          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-color)', opacity: 0.3 }}>
             ⏰ Submitted: {formatDate(m.india_time || lead.created_at)}
           </div>
         )}
@@ -374,9 +394,9 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
 
       {/* ── Message Preview ── */}
       {!isCompleted && (
-        <div style={{ margin: '0 12px 10px', background: '#071007', borderRadius: 10, padding: '10px 12px', borderLeft: '3px solid #25D36640' }}>
-          <div style={{ fontSize: 10, color: '#4a7a4a', marginBottom: 4 }}>MESSAGE {stepData.step_number} PREVIEW</div>
-          <div style={{ fontSize: 12, color: '#4a6a4a', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <div style={{ margin: '0 12px 10px', background: 'color-mix(in srgb, var(--surface-color), black 10%)', borderRadius: 10, padding: '10px 12px', borderLeft: `3px solid color-mix(in srgb, var(--accent-color), transparent 60%)` }}>
+          <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 4 }}>MESSAGE {stepData.step_number} PREVIEW</div>
+          <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6, lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {stepData.message_text}
           </div>
         </div>
@@ -385,26 +405,26 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
       {/* ── Actions ── */}
       <div style={{ padding: '0 12px 14px', marginTop: 'auto' }}>
         {isCompleted ? (
-          <div style={{ textAlign: 'center', padding: '12px 0', color: '#25D366', fontSize: 13, fontWeight: 700 }}>✅ Sequence complete</div>
+          <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--accent-color)', fontSize: 13, fontWeight: 700 }}>✅ Sequence complete</div>
         ) : (
           <div style={{ display: 'flex', gap: 8 }}>
             {awaitingSent ? (
               <button 
                 onClick={(e) => { e.stopPropagation(); onMarkSent(lead.id); }} 
-                style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: '2px solid #25D366', background: 'rgba(37,211,102,0.10)', color: '#25D366', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: `2px solid var(--accent-color)`, background: 'color-mix(in srgb, var(--accent-color), transparent 90%)', color: 'var(--accent-color)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
                 ✓ Mark as Sent
               </button>
             ) : (
               <a href={canSend ? waLink : undefined} target={canSend ? '_blank' : undefined} rel="noopener noreferrer"
                 onClick={(e) => { e.stopPropagation(); canSend && onSend(lead.id); }}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', textAlign: 'center', textDecoration: 'none', display: 'block', background: canSend ? '#25D366' : '#1a2e1a', color: canSend ? '#060d06' : '#3a5a3a', fontWeight: 700, fontSize: 13, cursor: canSend ? 'pointer' : 'default' }}>
+                style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', textAlign: 'center', textDecoration: 'none', display: 'block', background: canSend ? 'var(--accent-color)' : 'var(--border-color)', color: canSend ? 'var(--bg-color)' : 'var(--text-color)', opacity: canSend ? 1 : 0.5, fontWeight: 700, fontSize: 13, cursor: canSend ? 'pointer' : 'default' }}>
                 {canSend ? `Send Msg ${stepData.step_number} →` : lead.status === 'paused' ? '⏸ Paused' : `Wait · Day ${stepData.day_offset}`}
               </a>
             )}
             <button 
               onClick={(e) => { e.stopPropagation(); onPause(lead.id); }} 
               title={lead.status === 'paused' ? 'Resume' : 'Pause'} 
-              style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #1a2e1a', background: lead.status === 'paused' ? 'rgba(37,211,102,0.1)' : '#1a2e1a', color: lead.status === 'paused' ? '#25D366' : '#5a8a5a', fontSize: 18, cursor: 'pointer' }}>
+              style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border-color)', background: lead.status === 'paused' ? 'color-mix(in srgb, var(--accent-color), transparent 90%)' : 'var(--border-color)', color: lead.status === 'paused' ? 'var(--accent-color)' : 'var(--text-color)', opacity: lead.status === 'paused' ? 1 : 0.5, fontSize: 18, cursor: 'pointer' }}>
               {lead.status === 'paused' ? '▶' : '⏸'}
             </button>
           </div>
@@ -419,21 +439,27 @@ function LeadCard({ lead, awaitingSent, onSend, onMarkSent, onPause }: {
 function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 10, color: '#3a5a3a', marginBottom: 1 }}>{icon} {label}</div>
-      <div style={{ fontSize: 12, color: '#8ab48a', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+      <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 1 }}>{icon} {label}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.8, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
     </div>
   );
 }
 
 function MiniChip({ label }: { label: string }) {
-  return <span style={{ padding: '2px 8px', borderRadius: 20, background: '#0d1a0d', color: '#3a5a3a', fontSize: 11, border: '1px solid #1a2e1a' }}>{label}</span>;
+  return <span style={{ padding: '2px 8px', borderRadius: 20, background: 'var(--surface-color)', color: 'var(--text-color)', opacity: 0.6, fontSize: 11, border: '1px solid var(--border-color)' }}>{label}</span>;
 }
 
 function StatCard({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div style={{ padding: '14px 16px', borderRadius: 16, background: accent ? '#25D366' : '#0d1a0d', border: `1px solid ${accent ? 'transparent' : '#1a2e1a'}` }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: accent ? '#06280a' : '#5a8a5a', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: accent ? '#06280a' : '#ecfdf5' }}>{value}</div>
+    <div style={{ 
+      padding: '14px 16px', 
+      borderRadius: 16, 
+      background: accent ? 'var(--accent-color)' : 'var(--surface-color)', 
+      border: `1px solid ${accent ? 'transparent' : 'var(--border-color)'}`,
+      boxShadow: accent ? `0 0 20px color-mix(in srgb, var(--accent-color), transparent 60%)` : 'none',
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: accent ? 'var(--bg-color)' : 'var(--text-color)', opacity: accent ? 0.9 : 0.6, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: accent ? 'var(--bg-color)' : 'var(--text-color)' }}>{value}</div>
     </div>
   );
 }
@@ -441,16 +467,16 @@ function StatCard({ label, value, accent = false }: { label: string; value: numb
 function StatusBadge({ status, isDue, isCompleted }: { status: string; isDue: boolean; isCompleted: boolean }) {
   if (status === 'paused') return <span style={{ padding: '4px 10px', borderRadius: 20, background: '#2d1f0a', color: '#f59e0b', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>⏸ Paused</span>;
   if (isCompleted)         return <span style={{ padding: '4px 10px', borderRadius: 20, background: '#0d1a2e', color: '#60a5fa', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>✓ Done</span>;
-  if (isDue)               return <span style={{ padding: '4px 10px', borderRadius: 20, background: '#0a2612', color: '#25D366', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>● Due</span>;
-  return                   <span style={{ padding: '4px 10px', borderRadius: 20, background: '#1a1a1a', color: '#3a5a3a', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>Pending</span>;
+  if (isDue)               return <span style={{ padding: '4px 10px', borderRadius: 20, background: 'color-mix(in srgb, var(--accent-color), black 40%)', color: 'var(--accent-color)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>● Due</span>;
+  return                   <span style={{ padding: '4px 10px', borderRadius: 20, background: 'var(--border-color)', color: 'var(--text-color)', opacity: 0.5, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>Pending</span>;
 }
 
 function EmptyState({ tab }: { tab: string }) {
   return (
     <div style={{ textAlign: 'center', padding: '80px 0', color: '#5a8a5a' }}>
       <div style={{ fontSize: 52, marginBottom: 14 }}>{tab === 'due' ? '🎉' : '📭'}</div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: '#ecfdf5', marginBottom: 6 }}>{tab === 'due' ? 'All caught up!' : 'No leads yet'}</div>
-      <div style={{ fontSize: 13 }}>{tab === 'due' ? 'No leads due for messaging today.' : 'Press Sync to load leads from Google Sheets.'}</div>
+      <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-color)', marginBottom: 6 }}>{tab === 'due' ? 'All caught up!' : 'No leads yet'}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6 }}>{tab === 'due' ? 'No leads due for messaging today.' : 'Press Sync to load leads from Google Sheets.'}</div>
     </div>
   );
 }
@@ -461,15 +487,15 @@ const NUMPAD = [['1','2','3'],['4','5','6'],['7','8','9'],['','0','⌫']];
 
 function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: boolean; onInput: (d: string) => void; onDelete: () => void }) {
   return (
-    <div style={{ minHeight: '100vh', background: '#060d06', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
       <div style={{ width: '100%', maxWidth: 280 }}>
         <div style={{ textAlign: 'center', marginBottom: 44 }}>
-          <div style={{ width: 76, height: 76, borderRadius: 24, background: 'linear-gradient(135deg,#25D366,#128C7E)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, margin: '0 auto 18px', boxShadow: '0 8px 32px rgba(37,211,102,0.25)' }}>💬</div>
-          <div style={{ fontSize: 23, fontWeight: 800, color: '#ecfdf5', letterSpacing: '-0.3px' }}>Thought Bistro</div>
-          <div style={{ fontSize: 13, color: '#5a8a5a', marginTop: 4 }}>Lead Machine</div>
+          <div style={{ width: 76, height: 76, borderRadius: 24, background: 'linear-gradient(135deg,var(--accent-color),color-mix(in srgb, var(--accent-color), black 20%))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, margin: '0 auto 18px', boxShadow: `0 8px 32px color-mix(in srgb, var(--accent-color), transparent 75%)` }}>💬</div>
+          <div style={{ fontSize: 23, fontWeight: 800, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>Thought Bistro</div>
+          <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6, marginTop: 4 }}>Lead Machine</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginBottom: 8, animation: shake ? 'shake 0.5s ease-in-out' : 'none' }}>
-          {[0,1,2,3,4,5].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? '#25D366' : 'transparent', border: `2px solid ${shake ? '#ef4444' : i < pin.length ? '#25D366' : '#1a2e1a'}`, transition: 'all 0.15s', boxShadow: i < pin.length ? '0 0 8px rgba(37,211,102,0.4)' : 'none' }} />)}
+          {[0,1,2,3,4,5].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? 'var(--accent-color)' : 'transparent', border: `2px solid ${shake ? '#ef4444' : i < pin.length ? 'var(--accent-color)' : 'var(--border-color)'}`, transition: 'all 0.15s', boxShadow: i < pin.length ? `0 0 8px color-mix(in srgb, var(--accent-color), transparent 60%)` : 'none' }} />)}
         </div>
         <div style={{ height: 22, textAlign: 'center', marginBottom: 20 }}>
           {shake && <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 600 }}>Incorrect PIN. Try again.</span>}
@@ -477,13 +503,13 @@ function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: bool
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {NUMPAD.flat().map((d, i) => (
             <button key={i} onClick={() => d === '⌫' ? onDelete() : d !== '' ? onInput(d) : undefined}
-              style={{ height: 64, borderRadius: 18, border: d === '' ? 'none' : '1px solid #1a2e1a', background: d === '' ? 'transparent' : '#0d1a0d', color: d === '⌫' ? '#5a8a5a' : '#ecfdf5', fontSize: d === '⌫' ? 22 : 24, fontWeight: 600, cursor: d === '' ? 'default' : 'pointer' }}>
+              style={{ height: 64, borderRadius: 18, border: d === '' ? 'none' : '1px solid var(--border-color)', background: d === '' ? 'transparent' : 'var(--surface-color)', color: d === '⌫' ? 'var(--text-color)' : 'var(--text-color)', opacity: d === '⌫' ? 0.6 : 1, fontSize: d === '⌫' ? 22 : 24, fontWeight: 600, cursor: d === '' ? 'default' : 'pointer' }}>
               {d}
             </button>
           ))}
         </div>
-        <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px dotted #1a2e1a', width: '100%' }}>
-          <button onClick={() => signIn('google')} style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: '#ecfdf5', color: '#060d06', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
+        <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px dotted var(--border-color)', width: '100%' }}>
+          <button onClick={() => signIn('google')} style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: 'var(--text-color)', color: 'var(--bg-color)', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: 18 }} />
              Sign in with Google
           </button>
