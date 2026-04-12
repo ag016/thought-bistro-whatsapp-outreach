@@ -304,6 +304,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   };
 
   const handleDeleteEvent = async () => {
+    if (!lead) return;
     if (!confirm('Remove appointment from Google Calendar?')) return;
     try {
       const res = await fetch(`/api/calendar?leadName=${encodeURIComponent(lead.full_name)}&phone=${encodeURIComponent(lead.phone_number)}`, {
