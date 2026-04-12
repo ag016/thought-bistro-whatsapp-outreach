@@ -34,23 +34,25 @@ export async function POST(req: NextRequest) {
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-    // TIMEZONE FIX: 
-    // Input dateStr is 'YYYY-MM-DDTHH:mm' (local time selected by user).
-    // Vercel servers run in UTC. We want this time to be IST (+05:30).
-    // We create the date object, then subtract 5.5 hours (330 mins) to get the correct UTC time.
-    const startDate = new Date(dateStr); 
-    startDate.setMinutes(startDate.getMinutes() - 330); 
-
-    const endDate = new Date(startDate.getTime() + 30 * 60000); // 30 minutes later
+    // FIX: Instead of manual Date math, we append the IST offset (+05:30) to the local time string.
+    // Input dateStr is 'YYYY-MM-DDTHH:mm'. We make it 'YYYY-MM-DDTHH:mm:00+05:30'.
+    // Google Calendar API handles this RFC3339 string perfectly and schedules it for the correct local time.
+    const istDateTime = `${dateStr}:00+05:30`;
+    
+    // Create a date object just to calculate the end time (30 mins later)
+    const startDateObj = new Date(istDateTime);
+    const endDateObj = new Date(startDateObj.getTime() + 30 * 60000);
 
     const event = {
       summary: summary || `Clinic Follow Up: ${leadName || 'Lead'}`,
       description: description || `Scheduled via Thought Bistro Lead Machine.\n\nPhone Number: ${phone || 'N/A'}`,
       start: {
-        dateTime: startDate.toISOString(),
+        dateTime: istDateTime,
+        timeZone: 'Asia/Kolkata',
       },
       end: {
-        dateTime: endDate.toISOString(),
+        dateTime: endDateObj.toISOString(),
+        timeZone: 'Asia/Kolkata',
       },
       reminders: {
         useDefault: true,
@@ -78,8 +80,8 @@ export async function DELETE(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const eventId = searchParams.get('eventId');
-  const leadName = searchParams.get('leadName');
-  const phone = searchParams.get('phone');
+  const leadName = searchParams.get('leadName') || undefined;
+  const phone = searchParams.get('phone') || undefined;
 
   try {
     const oauth2Client = new google.auth.OAuth2(
@@ -102,15 +104,13 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (leadName || phone) {
-      // Search for events matching lead name or phone
       const query = leadName || phone;
       const events = await calendar.events.list({
         calendarId: 'primary',
-        q: query,
+        q: query || undefined,
       });
 
       if (events.data.items && events.data.items.length > 0) {
-        // Delete the most recent matching event
         const eventToDelete = events.data.items[0];
         await calendar.events.delete({
           calendarId: 'primary',
