@@ -1,0 +1,37 @@
+{
+  "files": {
+    "project/src/app/leads/[id]/page.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 45,
+          "end": 99
+        }
+      ],
+      "importsChanged": false,
+      "lastEdit": "2026-04-12T10:49:07.448Z"
+    },
+    "project/src/app/settings/page.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 87
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-04-12T10:44:05.112Z"
+    },
+    "project/src/app/analytics/page.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 163
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-04-12T10:44:56.371Z"
+    }
+  },
+  "turnCycles": 0,
+  "maxCycles": 3,
+  "lastUpdated": "2026-04-12T10:49:07.448Z"
+}

@@ -113,7 +113,7 @@ export default function App() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { if (authed) loadLeads(); }, [authed, loadLeads]);
+  useEffect(() => { if (isAccessGranted) loadLeads(); }, [isAccessGranted, loadLeads]);
 
   const handleSync = async () => { setSyncing(true); await loadLeads(); setSyncing(false); };
 
@@ -258,10 +258,18 @@ export default function App() {
 
       {/* ── Bottom Nav ── */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(6,13,6,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid #1a2e1a', padding: '12px 0 20px', display: 'flex', justifyContent: 'space-around' }}>
-        {[{ icon: '🏠', label: 'Dashboard', active: true }, { icon: '📊', label: 'Analytics' }, { icon: '⚙️', label: 'Settings' }].map(item => (
-          <div key={item.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
+        {[
+          { icon: '🏠', label: 'Dashboard', path: '/' }, 
+          { icon: '📊', label: 'Analytics', path: '/analytics' }, 
+          { icon: '⚙️', label: 'Settings', path: '/settings' }
+        ].map(item => (
+          <div 
+            key={item.label} 
+            onClick={() => router.push(item.path)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}
+          >
             <span style={{ fontSize: 22 }}>{item.icon}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: item.active ? '#25D366' : '#3a5a3a' }}>{item.label}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: item.path === '/' ? '#25D366' : '#3a5a3a' }}>{item.label}</span>
           </div>
         ))}
       </div>

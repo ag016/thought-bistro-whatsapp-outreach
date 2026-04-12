@@ -42,6 +42,75 @@ interface Note {
 
 const AUTH_KEY = 'tb_auth_session';
 
+// ── Templates ─────────────────────────────────────────────────────────────────
+
+const MESSAGE_TEMPLATES = [
+  {
+    id: 'starter',
+    name: 'Starter Capacity',
+    text: `Hi [NAME], great speaking with you! 
+
+I'm excited to get started on building your patient acquisition engine with our Starter Capacity setup (₹60,000/campaign). 
+
+Our singular focus with this build is *Lead Quality*. We don't chase vanity metrics, fluff, or empty clicks; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book. For this campaign, we handle all the heavy lifting to make that happen, which includes:
+* 1 Dedicated Ad Set
+* 2 Authority Video Ads
+* Complete Tech Setup & Lead Forms
+Note: Our ongoing support fee of ₹15,000/month per campaign is completely waived for your first month.
+
+Since your Skin Tightening Treatment using the Hifu Laser starts at ₹25,000, we are backing this with our strict Skin-in-the-Game Guarantee. As long as you allocate a minimum of ₹30,000 to ad spend for the month, we guarantee to deliver at least 3 highly qualified leads in your first month to fully justify and cover your investment with us. 
+
+Please note that this guarantee is adjusted based on the offer you take up. For example, in case you take our Growth Capacity offer (₹1,75,000/campaign), then on a minimum ad spend of ₹1.5L for the month, we will guarantee you at least 7 qualified leads to cover that investment.
+
+If we miss the mark on your chosen tier: 
+You either do not owe us the final 50% (if you choose the split payment), or we will refund 50% of your investment (if you pay upfront).
+
+For a full breakdown of the deliverables and our other tiers, you can review our pricing page here: https://www.thethoughtbistro.com/pricing
+
+Think over whether you'd prefer to proceed with the 15% discounted upfront payment of ₹51,000 or the 50/50 split of ₹30,000 now and ₹30,000 on launch, and we can finalize everything during our meeting tomorrow!
+-Vishrut
+
+P.S. Since we are already guaranteeing the baseline to cover your investment, the only real question left to consider is: do you want more high-quality leads, and exactly how many can your clinic's team realistically handle?`
+  },
+  {
+    id: 'growth',
+    name: 'Growth Capacity',
+    text: `Hi [NAME], great speaking with you!
+
+I'm excited to get started on building your patient acquisition engine with our Growth Capacity setup (₹1,75,000/campaign). 
+
+Our singular focus is Lead Quality. We don't chase vanity metrics; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book. 
+
+For this build, we handle all the heavy lifting, which includes:
+✅ 1 Dedicated Ad Set
+✅ 7 Research-Backed Authority Videos (Using a data-driven framework to ensure maximum trust and conversion)
+✅ Complete Tech Setup & Lead Forms
+
+Ongoing Management:
+To ensure the system stays optimized and leads keep flowing, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁
+
+🛡️ The 'Skin-in-the-Game' Guarantee:
+We are backing this with a strict performance guarantee. Given that a qualified lead represents an average of ₹40k in potential business, just 5 qualified leads would generate ₹2,00,000—fully recovering your investment and putting you in the green. 
+
+Therefore, we guarantee you at least 5 highly qualified leads to justify this investment. If we miss that mark: 
+👉 You either do not owe us the final 50% (if you choose the split payment), or we will refund 50% of your investment (if you pay upfront).
+
+💰 Investment & Terms:
+(All prices are exclusive of GST)
+
+1️⃣ Full Upfront: ₹1,48,750 (15% discount applied)
+2️⃣ Split Payment: ₹87,500 now and ₹87,500 on launch
+
+You can view the full breakdown of deliverables and our other tiers on our pricing page here: https://www.thethoughtbistro.com/pricing
+
+Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊
+
+-Vishrut
+
+P.S. Since we are guaranteeing the baseline to cover your investment, the only real question left is: do you want more high-quality leads, and exactly how many can your clinic's team realistically handle? 📈`
+  }
+];
+
 function fmt(str: string) {
   if (!str) return '—';
   // Handle Indian DD/MM/YYYY HH:MM:SS formatting manually
@@ -73,10 +142,11 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   const { data: session } = useSession();
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem(AUTH_KEY) !== '1') {
+    const isAuthed = typeof window !== 'undefined' && (sessionStorage.getItem(AUTH_KEY) === '1' || !!session);
+    if (!isAuthed) {
       router.push('/');
     }
-  }, [router]);
+  }, [router, session]);
 
   const loadLead = useCallback(async () => {
     setLoading(true);
@@ -327,6 +397,45 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                   <div style={{ fontSize: 12, color: '#5a8a5a' }}>Sign in to Google on your Dashboard to enable 1-tap scheduling here.</div>
                 </div>
               )}
+            </div>
+
+            {/* Templates Section */}
+            <div style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: 18, padding: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#25D366', letterSpacing: '0.08em', marginBottom: 14 }}>QUICK TEMPLATES</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {MESSAGE_TEMPLATES.map(tpl => {
+                  const personalised = tpl.text.replace('[NAME]', lead.full_name);
+                  const waLink = generateWhatsAppLink(lead.phone_number, personalised);
+                  return (
+                    <a 
+                      key={tpl.id} 
+                      href={waLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ 
+                        padding: '12px', 
+                        borderRadius: 12, 
+                        background: '#0a150a', 
+                        border: '1px solid #1a2e1a', 
+                        color: '#ecfdf5', 
+                        fontSize: 13, 
+                        fontWeight: 600, 
+                        textDecoration: 'none', 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = '#25D366'}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1a2e1a'}
+                    >
+                      {tpl.name}
+                      <span style={{ fontSize: 16 }}>↗</span>
+                    </a>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Lead Info */}
