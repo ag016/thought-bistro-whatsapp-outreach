@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { NURTURE_SEQUENCE, generateWhatsAppLink, calculateIsDue, getDaysUntilDue } from '@/lib/nurture';
+import { NURTURE_SEQUENCE, generateWhatsAppLink, getDaysUntilDue } from '@/lib/nurture';
 import InfoField from './InfoField';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -42,6 +42,14 @@ interface Note {
 const AUTH_KEY = 'tb_auth_session';
 
 function fmt(str: string) {
+  if (!str) return '—';
+  // Handle Indian DD/MM/YYYY HH:MM:SS formatting manually
+  const parts = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (parts) {
+    const [, d, m, y, h, min, s] = parts;
+    const date = new Date(`${y}-${m}-${d}T${h}:${min}:${s}`);
+    return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+  }
   try { return new Date(str).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
   catch { return str; }
 }
@@ -54,7 +62,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   const [nurtureRaw,   setNurtureRaw]   = useState<Record<string, string>>({});
   const [notes,        setNotes]        = useState<Note[]>([]);
   const [loading,      setLoading]      = useState(true);
-  const [awaitSent,    setAwaitSent]    = useState(false);
+  const [awaitSentMsg, setAwaitSentMsg] = useState<number | null>(null);
   const [newNote,      setNewNote]      = useState('');
   const [addingNote,   setAddingNote]   = useState(false);
 
@@ -99,21 +107,23 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
 
   useEffect(() => { loadLead(); }, [loadLead]);
 
-  const handleMarkSent = async () => {
+  const handleMarkMsgSent = async (stepNumber: number) => {
     if (!lead) return;
-    const nextStep = Math.min(lead.current_step + 1, NURTURE_SEQUENCE.length);
     const now = new Date().toISOString();
     
+    // Auto-advance the sequence if they haven't manually reached this step yet
+    const newCurrentStep = Math.max(lead.current_step, stepNumber);
+    
     // Optimistic UI update
-    setLead(prev => prev ? { ...prev, current_step: nextStep, last_sent_at: now } : prev);
-    setNurtureRaw(prev => ({ ...prev, current_step: String(nextStep), last_sent_at: now, [`msg${nextStep}_sent`]: now }));
-    setAwaitSent(false);
+    setLead(prev => prev ? { ...prev, current_step: newCurrentStep, last_sent_at: now } : prev);
+    setNurtureRaw(prev => ({ ...prev, current_step: String(newCurrentStep), last_sent_at: now, [`msg${stepNumber}_sent`]: now }));
+    setAwaitSentMsg(null);
 
     // Persist
     await fetch('/api/nurture', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leadId: lead.id, currentStep: nextStep, lastSentAt: now, msgIndex: nextStep, sentAt: now })
+      body: JSON.stringify({ leadId: lead.id, currentStep: newCurrentStep, lastSentAt: now, msgIndex: stepNumber, sentAt: now })
     });
   };
 
@@ -165,12 +175,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     </div>
   );
 
-  const isDue       = calculateIsDue(lead);
   const isCompleted = lead.current_step >= NURTURE_SEQUENCE.length;
-  const stepIdx     = Math.min(lead.current_step, NURTURE_SEQUENCE.length - 1);
-  const stepData    = NURTURE_SEQUENCE[stepIdx];
-  const canSend     = isDue && lead.status === 'active' && !isCompleted;
-  const waLink      = generateWhatsAppLink(lead.phone_number, stepData.message_text);
   const daysUntil   = getDaysUntilDue(lead);
   const m           = lead.metadata;
 
@@ -215,7 +220,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                 <span style={{ color: '#ecfdf5', fontWeight: 700 }}>Step {Math.min(lead.current_step + 1, 10)} / 10</span>
                 {isCompleted
                   ? <span style={{ color: '#25D366', fontWeight: 700 }}>Sequence complete</span>
-                  : canSend
+                  : daysUntil <= 0
                     ? <span style={{ color: '#25D366', fontWeight: 700 }}>Due now</span>
                     : <span style={{ color: '#5a8a5a' }}>Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
               </div>
@@ -282,89 +287,74 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* ── RIGHT PANEL: Message Timeline ── */}
+          {/* ── RIGHT PANEL: Flexible Message Timeline ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-            {/* Current Action */}
-            {!isCompleted && (
-              <div style={{ background: canSend ? '#0a1f0a' : '#0d1a0d', border: `1px solid ${canSend ? '#25D36650' : '#1a2e1a'}`, borderRadius: 18, padding: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#25D366', letterSpacing: '0.08em', marginBottom: 12 }}>
-                  {canSend ? 'SEND NOW — MESSAGE ' + stepData.step_number : 'NEXT MESSAGE — ' + stepData.step_number + ' (in ' + daysUntil + ' days)'}
-                </div>
-                <div style={{ background: '#060d06', borderRadius: 12, padding: 16, marginBottom: 16, borderLeft: '3px solid #25D36640' }}>
-                  <pre style={{ fontFamily: 'inherit', fontSize: 13, color: '#8ab48a', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>
-                    {stepData.message_text}
-                  </pre>
-                </div>
-                {canSend && (
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {awaitSent ? (
-                      <button onClick={handleMarkSent} style={{ flex: 1, padding: '13px 0', borderRadius: 12, border: '2px solid #25D366', background: 'rgba(37,211,102,0.1)', color: '#25D366', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-                        Mark as Sent
-                      </button>
-                    ) : (
-                      <a href={waLink} target="_blank" rel="noopener noreferrer" onClick={() => setAwaitSent(true)}
-                        style={{ flex: 1, padding: '13px 0', borderRadius: 12, border: 'none', textAlign: 'center', textDecoration: 'none', display: 'block', background: '#25D366', color: '#060d06', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-                        Open in WhatsApp
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Message Timeline */}
             <div style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: 18, padding: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#25D366', letterSpacing: '0.08em', marginBottom: 16 }}>MESSAGE TIMELINE</div>
+              <div style={{ fontSize: 12, color: '#5a8a5a', marginBottom: 20 }}>
+                You can send messages continuously or skip ahead. Timestamps are tracked individually.
+              </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {NURTURE_SEQUENCE.map((step, i) => {
+                  // Strict check for whether *this exact* message has been sent
                   const sentTimestamp = nurtureRaw[`msg${step.step_number}_sent`];
-                  const isSent     = i < lead.current_step;
-                  const isCurrent  = i === lead.current_step && !isCompleted;
-                  const isFuture   = i > lead.current_step || isCompleted && i >= lead.current_step;
+                  const hasBeenSent = !!sentTimestamp;
+                  
+                  // For purely visual indicators
+                  const isCurrentTarget = !hasBeenSent && i === lead.current_step && !isCompleted;
                   const daysFromNow = Math.max(0, step.day_offset - Math.ceil((Date.now() - new Date(lead.created_at).getTime()) / 86400000));
+                  const waLink = generateWhatsAppLink(lead.phone_number, step.message_text);
 
                   return (
-                    <div key={i} style={{ display: 'flex', gap: 12, paddingBottom: i < NURTURE_SEQUENCE.length - 1 ? 0 : 0 }}>
-                      {/* Timeline line + dot */}
+                    <div key={i} style={{ display: 'flex', gap: 12, paddingBottom: 16, borderBottom: i < NURTURE_SEQUENCE.length - 1 ? '1px solid #1a2e1a' : 'none' }}>
+                      {/* Timeline dot */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
-                        <div style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, marginTop: 14, background: isSent ? '#25D366' : isCurrent ? 'rgba(37,211,102,0.5)' : '#1a2e1a', border: isCurrent ? '2px solid #25D366' : 'none' }} />
+                        <div style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, marginTop: 14, background: hasBeenSent ? '#25D366' : isCurrentTarget ? 'rgba(37,211,102,0.5)' : '#1a2e1a', border: isCurrentTarget ? '2px solid #25D366' : 'none' }} />
                         {i < NURTURE_SEQUENCE.length - 1 && (
-                          <div style={{ width: 2, flex: 1, minHeight: 24, background: isSent ? '#25D36640' : '#1a2e1a', margin: '4px 0' }} />
+                          <div style={{ width: 2, flex: 1, minHeight: 40, background: hasBeenSent ? '#25D36640' : '#1a2e1a', margin: '4px 0' }} />
                         )}
                       </div>
 
                       {/* Content */}
-                      <div style={{ flex: 1, paddingTop: 8, paddingBottom: 16 }}>
+                      <div style={{ flex: 1, paddingTop: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: isSent ? '#ecfdf5' : isCurrent ? '#25D366' : '#3a5a3a' }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: hasBeenSent ? '#ecfdf5' : isCurrentTarget ? '#25D366' : '#3a5a3a' }}>
                             Message {step.step_number}
-                            {isCurrent && ' — Due Now'}
+                            {isCurrentTarget && ' — Next Expected'}
                           </div>
                           <div style={{ fontSize: 11, color: '#3a5a3a', textAlign: 'right' }}>
                             Day {step.day_offset}
                           </div>
                         </div>
 
-                        {isSent && sentTimestamp && (
-                          <div style={{ fontSize: 11, color: '#25D36680', marginBottom: 6 }}>Sent {fmt(sentTimestamp)}</div>
+                        {hasBeenSent && sentTimestamp && (
+                          <div style={{ fontSize: 11, color: '#25D36680', marginBottom: 8 }}>✓ Sent on {fmt(sentTimestamp)}</div>
                         )}
-                        {isSent && !sentTimestamp && (
-                          <div style={{ fontSize: 11, color: '#3a5a3a', marginBottom: 6 }}>Sent</div>
-                        )}
-                        {isCurrent && !isSent && (
-                          <div style={{ fontSize: 11, color: '#25D366', marginBottom: 6 }}>Ready to send</div>
-                        )}
-                        {isFuture && !isCurrent && (
-                          <div style={{ fontSize: 11, color: '#2a4a2a', marginBottom: 6 }}>
-                            {daysFromNow > 0 ? `In ${daysFromNow} day${daysFromNow !== 1 ? 's' : ''}` : 'Upcoming'}
+                        {!hasBeenSent && !isCurrentTarget && (
+                          <div style={{ fontSize: 11, color: '#2a4a2a', marginBottom: 8 }}>
+                            {daysFromNow > 0 ? `Ideally in ${daysFromNow} day${daysFromNow !== 1 ? 's' : ''}` : 'Pending'}
                           </div>
                         )}
 
-                        <div style={{ fontSize: 12, color: isSent ? '#4a7a4a' : '#2a4a2a', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {step.message_text}
+                        <div style={{ fontSize: 12, color: hasBeenSent ? '#4a7a4a' : '#5a8a5a', lineHeight: 1.5, background: hasBeenSent ? '#0a150a' : '#071007', padding: '12px', borderRadius: 8, borderLeft: `3px solid ${hasBeenSent ? '#25D36630' : '#3a5a3a'}` }}>
+                          <pre style={{ margin: 0, fontFamily: 'inherit', whiteSpace: 'pre-wrap' }}>{step.message_text}</pre>
                         </div>
+
+                        {/* Flexible Actions */}
+                        <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                          {awaitSentMsg === step.step_number ? (
+                            <button onClick={() => handleMarkMsgSent(step.step_number)} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: '2px solid #25D366', background: 'rgba(37,211,102,0.1)', color: '#25D366', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                              Click to confirm sending
+                            </button>
+                          ) : (
+                            <a href={waLink} target="_blank" rel="noopener noreferrer" onClick={() => setAwaitSentMsg(step.step_number)}
+                              style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: '1px solid #1a2e1a', textAlign: 'center', textDecoration: 'none', display: 'block', background: hasBeenSent ? '#0d1a0d' : '#25D366', color: hasBeenSent ? '#25D366' : '#060d06', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                              {hasBeenSent ? 'Resend in WhatsApp' : 'Open in WhatsApp'}
+                            </a>
+                          )}
+                        </div>
+
                       </div>
                     </div>
                   );

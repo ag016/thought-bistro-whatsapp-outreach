@@ -71,9 +71,15 @@ function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
 }
 
 function formatDate(str: string) {
-  try {
-    return new Date(str).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
-  } catch { return str; }
+  if (!str) return '—';
+  const parts = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (parts) {
+    const [, d, m, y, h, min, s] = parts;
+    const date = new Date(`${y}-${m}-${d}T${h}:${min}:${s}`);
+    return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+  try { return new Date(str).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }); }
+  catch { return str; }
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
