@@ -228,7 +228,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ padding: '24px 24px 0' }}>
+      <div style={{ padding: '24px 24px 0', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
 
         {/* ── Stats Bar ── */}
         <div className="stats-grid" style={{ marginBottom: 20 }}>
@@ -277,7 +277,7 @@ export default function App() {
         ) : (
           <div style={{ paddingBottom: 24 }}>
             {view === 'list' ? (
-              <LeadList leads={displayLeads} onPause={handlePause} />
+              <LeadList leads={displayLeads} onPause={handlePause} onSend={handleSend} />
             ) : (
               <KanbanBoard leads={displayLeads} onUpdateTag={handleUpdateTag} />
             )}
@@ -310,12 +310,12 @@ export default function App() {
 
 function StatCard({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div style={{ 
+    <div className={`transition-enterprise ${accent ? '' : 'deep-shadow'}`} style={{ 
       padding: '14px 16px', 
       borderRadius: 16, 
       background: accent ? 'var(--accent-color)' : 'var(--surface-color)', 
       border: `1px solid ${accent ? 'transparent' : 'var(--border-color)'}`,
-      boxShadow: accent ? `0 0 20px color-mix(in srgb, var(--accent-color), transparent 60%)` : 'none',
+      boxShadow: accent ? `0 0 25px color-mix(in srgb, var(--accent-color), transparent 60%)` : '0 4px 12px rgba(0,0,0,0.3)',
     }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: accent ? 'var(--bg-color)' : 'var(--text-color)', opacity: accent ? 0.9 : 0.6, marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 28, fontWeight: 800, color: accent ? 'var(--bg-color)' : 'var(--text-color)' }}>{value}</div>
