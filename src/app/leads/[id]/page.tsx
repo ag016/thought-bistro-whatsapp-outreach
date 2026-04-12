@@ -75,16 +75,15 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   const loadLead = useCallback(async () => {
     setLoading(true);
     try {
+      const paramId = decodeURIComponent(params.id);
       const [leadsRes, nurtureRes, notesRes] = await Promise.all([
         fetch('/api/leads'),
         fetch('/api/nurture'),
-        fetch(`/api/notes?leadId=${encodeURIComponent(params.id)}`)
+        fetch(`/api/notes?leadId=${encodeURIComponent(paramId)}`)
       ]);
       const leadsData   = await leadsRes.json() as { leads?: any[] };
       const nurtureData = await nurtureRes.json() as { nurture?: Record<string, Record<string, string>> };
       const notesData   = await notesRes.json() as { notes?: Note[] };
-
-      const paramId = decodeURIComponent(params.id);
       const found = (leadsData.leads ?? []).find(l => l.sheet_id === paramId || l.id === paramId);
       if (found) {
         const nMap = nurtureData.nurture ?? {};
