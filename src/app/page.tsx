@@ -70,7 +70,8 @@ function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
     .map(sl => {
       const nurture = nurtureMap[sl.sheet_id] ?? { current_step: 0, status: 'active' as LeadStatus, last_sent_at: null };
       return { id: sl.sheet_id, sheet_id: sl.sheet_id, full_name: sl.full_name, phone_number: sl.phone_number, company_name: sl.company_name, created_at: sl.created_at, metadata: sl.metadata, ...nurture } as Lead;
-    });
+    })
+    .reverse(); // LIFO — newest leads (bottom of sheet) appear first
 }
 
 function formatDate(str: string) {
@@ -147,6 +148,12 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#060d06', paddingBottom: 80 }}>
+      <style>{`
+        .stats-grid   { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .leads-grid   { display:grid; grid-template-columns:1fr; gap:16px; }
+        @media(min-width:768px)  { .stats-grid { grid-template-columns:repeat(4,1fr); } .leads-grid { grid-template-columns:1fr 1fr; } }
+        @media(min-width:1280px) { .leads-grid { grid-template-columns:1fr 1fr 1fr; } }
+      `}</style>
 
       {/* ── Sticky Header ── */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(6,13,6,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid #1a2e1a', padding: '14px 24px' }}>
@@ -165,7 +172,7 @@ export default function App() {
       <div style={{ padding: '24px 24px 0' }}>
 
         {/* ── Stats Bar ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginBottom: 20 }}>
+        <div className="stats-grid" style={{ marginBottom: 20 }}>
           <StatCard label="Total Leads"  value={leads.length} />
           <StatCard label="Due Today"    value={dueLeads.length} accent />
           <StatCard label="Active"       value={leads.filter(l => l.status === 'active').length} />
@@ -197,7 +204,7 @@ export default function App() {
         ) : displayLeads.length === 0 ? (
           <EmptyState tab={tab} />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ paddingBottom: 24 }}>
+          <div className="leads-grid" style={{ paddingBottom: 24 }}>
             {displayLeads.map(lead => (
               <LeadCard
                 key={lead.id}
