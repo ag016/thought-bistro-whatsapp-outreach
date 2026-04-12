@@ -113,6 +113,8 @@ export default function App() {
     finally { setLoading(false); }
   }, []);
 
+  const isAccessGranted = authed || !!session;
+
   useEffect(() => { if (isAccessGranted) loadLeads(); }, [isAccessGranted, loadLeads]);
 
   const handleSync = async () => { setSyncing(true); await loadLeads(); setSyncing(false); };
@@ -132,7 +134,6 @@ export default function App() {
   const deletePin = () => setPin(p => p.slice(0, -1));
 
   // Physical keyboard support for PIN screen
-  const isAccessGranted = authed || !!session;
 
   useEffect(() => {
     if (isAccessGranted) return;
