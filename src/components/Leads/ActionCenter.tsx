@@ -67,69 +67,41 @@ export default function ActionCenter({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col gap-4">
       {/* ── NOTES ── */}
-      <div style={{ 
-        background: 'var(--surface-color)', 
-        border: '1px solid var(--border-color)', 
-        borderRadius: 18, 
-        padding: 20 
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning-color)', letterSpacing: '0.08em', marginBottom: 14 }}>NOTES</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16, maxHeight: 300, overflowY: 'auto' }}>
+      <div className="pane-card transition-enterprise">
+        <div className="text-[11px] font-bold text-amber-500 tracking-widest mb-3.5 uppercase">Notes</div>
+        <div className="flex flex-col gap-3 mb-4 max-h-[300px] overflow-y-auto pr-1">
           {notes.length === 0 ? (
-            <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.4, fontStyle: 'italic' }}>No notes yet.</div>
+            <div className="text-xs text-slate-400 italic opacity-40">No notes yet.</div>
           ) : (
             notes.map((note, i) => (
-              <div key={i} style={{ 
-                background: 'color-mix(in srgb, var(--surface-color), var(--warning-color) 10%)', 
-                border: '1px solid color-mix(in srgb, var(--border-color), var(--warning-color) 30%)', 
-                borderRadius: 12, 
-                padding: '12px', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start' 
-              }}>
+              <div key={i} className="glass-surface rounded-xl p-3 flex justify-between items-start transition-enterprise hover:border-amber-500/30">
                 <div>
-                  <div style={{ fontSize: 13, color: 'var(--warning-color)', lineHeight: 1.5, marginBottom: 6 }}>{note.note_text}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5 }}>
+                  <div className="text-sm text-amber-200/90 leading-relaxed mb-1.5">{note.note_text}</div>
+                  <div className="text-[10px] text-slate-400 opacity-50">
                     {note.source === 'imported' ? 'Imported from Sheet' : fmtDate(note.created_at)}
                   </div>
                 </div>
-                <button onClick={() => onDeleteNote(note.note_text)} style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: 16, opacity: 0.6 }}>×</button>
+                <button onClick={() => onDeleteNote(note.note_text)} className="text-red-400 hover:text-red-300 transition-colors text-lg leading-none opacity-60 hover:opacity-100">×</button>
               </div>
             ))
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex gap-2">
           <input 
             type="text" 
             value={newNote} 
             onChange={e => setNewNote(e.target.value)}
             placeholder="Add a note..." 
             onKeyDown={e => e.key === 'Enter' && handleAddNote()}
-            style={{ 
-              flex: 1, 
-              background: 'var(--bg-color)', 
-              border: '1px solid var(--border-color)', 
-              borderRadius: 10, 
-              padding: '10px 14px', 
-              color: 'var(--text-color)', 
-              fontSize: 13 
-            }}
+            className="input-field flex-1"
           />
           <button 
             onClick={handleAddNote} 
             disabled={!newNote.trim()}
-            style={{ 
-              padding: '0 16px', 
-              borderRadius: 10, 
-              background: 'var(--warning-color)', 
-              color: 'var(--bg-color)', 
-              fontWeight: 700, 
-              border: 'none', 
-              cursor: 'pointer' 
-            }}
+            className="btn-primary px-4 py-2 text-xs"
+            style={{ backgroundColor: 'var(--warning-color)', color: 'var(--bg-color)' }}
           >
             Add
           </button>
@@ -137,129 +109,76 @@ export default function ActionCenter({
       </div>
 
       {/* ── BOOKING ── */}
-      <div style={{ 
-        background: 'var(--surface-color)', 
-        border: '1px solid var(--border-color)', 
-        borderRadius: 18, 
-        padding: 20 
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-color)', letterSpacing: '0.08em', marginBottom: 14 }}>BOOK APPOINTMENT</div>
+      <div className="pane-card transition-enterprise">
+        <div className="text-[11px] font-bold text-blue-500 tracking-widest mb-3.5 uppercase">Book Appointment</div>
         {session?.accessToken ? (
-          <>
+          <div className="flex flex-col gap-3">
             <input 
               type="text" 
               placeholder="Event Title" 
               value={eventTitle} 
               onChange={e => setEventTitle(e.target.value)} 
-              style={{ width: '100%', marginBottom: 12, background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-color)', fontSize: 13 }} 
+              className="input-field w-full" 
             />
             <input 
               type="text" 
               placeholder="Appointment Note" 
               value={eventNote} 
               onChange={e => setEventNote(e.target.value)} 
-              style={{ width: '100%', marginBottom: 12, background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-color)', fontSize: 13 }} 
+              className="input-field w-full" 
             />
             <input 
               type="datetime-local" 
               value={callDate} 
               onChange={e => setCallDate(e.target.value)} 
-              style={{ width: '100%', marginBottom: 12, background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '10px 14px', color: 'var(--text-color)', fontSize: 13, colorScheme: 'dark' }} 
+              className="input-field w-full"
+              style={{ colorScheme: 'dark' }} 
             />
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="flex gap-2">
               <button 
                 onClick={handleBookCall} 
                 disabled={booking || !callDate} 
-                style={{ 
-                  flex: 1, 
-                  padding: '12px', 
-                  borderRadius: 10, 
-                  background: booking ? 'color-mix(in srgb, var(--info-color), black 40%)' : 'var(--info-color)', 
-                  color: 'var(--bg-color)', 
-                  fontWeight: 700, 
-                  border: 'none', 
-                  cursor: 'pointer' 
-                }}
+                className="btn-primary flex-1 py-3 text-xs"
+                style={{ backgroundColor: 'var(--info-color)', color: 'var(--bg-color)' }}
               >
-                {booking ? 'Scheduling...' : bookSuccess ? '✓ ' + bookSuccess : 'Add to Google Calendar'}
+                {booking ? 'Scheduling...' : bookSuccess ? `✓ ${bookSuccess}` : 'Add to Google Calendar'}
               </button>
               <button 
                 onClick={onDeleteEvent} 
-                style={{ 
-                  padding: '12px', 
-                  borderRadius: 10, 
-                  background: 'color-mix(in srgb, var(--surface-color), var(--danger-color) 20%)', 
-                  color: 'var(--danger-color)', 
-                  border: '1px solid var(--danger-color)', 
-                  cursor: 'pointer', 
-                  fontSize: 18 
-                }}
+                className="px-3 py-3 rounded-xl border border-red-500/50 text-red-500 hover:bg-red-500/10 transition-colors text-lg"
               >
                 🗑
               </button>
             </div>
-          </>
+          </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '10px 0', fontSize: 12, color: 'var(--text-color)', opacity: 0.6 }}>
+          <div className="text-center py-2 text-xs text-slate-400 opacity-60">
             Sign in to Google on your Dashboard to enable 1-tap scheduling here.
           </div>
         )}
       </div>
 
       {/* ── TEMPLATES ── */}
-      <div style={{ 
-        background: 'var(--surface-color)', 
-        border: '1px solid var(--border-color)', 
-        borderRadius: 18, 
-        padding: 20 
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 14 }}>QUICK TEMPLATES</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="pane-card transition-enterprise">
+        <div className="text-[11px] font-bold text-emerald-500 tracking-widest mb-3.5 uppercase">Quick Templates</div>
+        <div className="flex flex-col gap-2">
           {templates.map(tpl => {
             const personalised = tpl.text.replace('[NAME]', lead.full_name);
             const waLink = `https://wa.me/${lead.phone_number}?text=${encodeURIComponent(personalised)}`;
             return (
-              <div key={tpl.id} style={{ position: 'relative' }}>
+              <div key={tpl.id} className="relative group">
                 <a 
                   href={waLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  style={{ 
-                    padding: '12px', 
-                    borderRadius: 12, 
-                    background: 'var(--bg-color)', 
-                    border: '1px solid var(--border-color)', 
-                    color: 'var(--text-color)', 
-                    fontSize: 13, 
-                    fontWeight: 600, 
-                    textDecoration: 'none', 
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                  className="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-white/10 text-slate-200 text-xs font-semibold no-underline cursor-pointer transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5"
                 >
                   {tpl.name}
-                  <span style={{ fontSize: 16 }}>↗</span>
+                  <span className="text-sm opacity-50 group-hover:opacity-100 transition-opacity">↗</span>
                 </a>
                 <button 
                   onClick={(e) => { e.preventDefault(); setPreviewTemplate(personalised); }}
-                  style={{ 
-                    position: 'absolute', 
-                    right: 40, 
-                    top: '50%', 
-                    transform: 'translateY(-50%)', 
-                    background: 'transparent', 
-                    border: 'none', 
-                    color: 'var(--accent-color)', 
-                    cursor: 'pointer', 
-                    fontSize: 11, 
-                    fontWeight: 700, 
-                    textDecoration: 'underline' 
-                  }}
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500 underline cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   Preview
                 </button>
@@ -269,20 +188,10 @@ export default function ActionCenter({
         </div>
 
         {previewTemplate && (
-          <div style={{ 
-            marginTop: 16, 
-            padding: '12px', 
-            background: 'var(--bg-color)', 
-            border: '1px solid var(--accent-color)', 
-            borderRadius: 12, 
-            fontSize: 12, 
-            color: 'var(--text-color)', 
-            whiteSpace: 'pre-wrap',
-            position: 'relative'
-          }}>
+          <div className="mt-4 p-3 glass-surface border-emerald-500/50 rounded-xl text-xs text-slate-300 whitespace-pre-wrap relative animate-fade-in">
             <button 
               onClick={() => setPreviewTemplate(null)} 
-              style={{ position: 'absolute', top: -10, right: -10, background: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+              className="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 border-none rounded-full w-5 h-5 cursor-pointer text-xs font-bold hover:scale-110 transition-transform"
             >
               ×
             </button>

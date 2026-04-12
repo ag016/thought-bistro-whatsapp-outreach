@@ -32,36 +32,32 @@ export default function MessageBubble({
 
   return (
     <div 
-      style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: 8, 
-        padding: '12px', 
-        borderRadius: 16, 
-        background: isExpanded ? 'var(--surface-color)' : isCurrentTarget ? 'color-mix(in srgb, var(--accent-color), transparent 95%)' : 'transparent',
-        border: isExpanded ? '1px solid var(--accent-color)' : isCurrentTarget ? '1px solid var(--accent-color)' : '1px solid transparent',
-        boxShadow: isCurrentTarget ? '0 0 15px color-mix(in srgb, var(--accent-color), transparent 80%)' : 'none',
-        transition: 'all 0.2s ease',
-        cursor: isExpanded ? 'default' : 'pointer'
-      }}
+      className={`flex flex-col gap-2 p-3 rounded-2xl transition-all cursor-pointer hover:scale-[1.01] ${
+        isExpanded 
+          ? 'bg-slate-800 border-2 border-emerald-500 shadow-lg ring-1 ring-emerald-500/20' 
+          : isCurrentTarget 
+            ? 'bg-emerald-500/5 border-2 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+            : 'bg-transparent border-2 border-transparent'
+      }`}
       onClick={() => !isExpanded && setIsExpanded(true)}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: isCurrentTarget ? 'var(--accent-color)' : 'var(--text-color)', opacity: hasBeenSent || isCurrentTarget ? 1 : 0.5 }}>
+      <div className="flex justify-between items-center mb-1">
+        <div className={`text-xs font-bold transition-colors ${
+          isCurrentTarget ? 'text-emerald-500' : 'text-slate-300 opacity-70'
+        }`}>
           Message {stepNumber}
         </div>
         {hasBeenSent && sentTimestamp && (
-          <div style={{ fontSize: 11, color: 'var(--accent-color)', opacity: 0.8 }}>✓ {fmtDate(sentTimestamp)}</div>
+          <div className="text-[10px] text-emerald-500 font-medium opacity-80">✓ {fmtDate(sentTimestamp)}</div>
         )}
       </div>
 
       {!isExpanded ? (
         <div 
+          className={`text-sm leading-relaxed text-slate-300 transition-opacity ${
+            hasBeenSent ? 'opacity-100' : 'opacity-60'
+          }`}
           style={{ 
-            fontSize: 13, 
-            lineHeight: 1.5, 
-            color: 'var(--text-color)', 
-            opacity: hasBeenSent ? 1 : 0.7,
             display: '-webkit-box',
             WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
@@ -72,27 +68,16 @@ export default function MessageBubble({
           {text}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="flex flex-col gap-3 animate-fade-in">
           <textarea 
             value={text} 
             onChange={(e) => setText(e.target.value)}
-            style={{ 
-              width: '100%', 
-              minHeight: 120, 
-              background: 'var(--bg-color)', 
-              color: 'var(--text-color)', 
-              border: '1px solid var(--border-color)', 
-              borderRadius: 10, 
-              padding: 10, 
-              fontSize: 13, 
-              fontFamily: 'inherit',
-              resize: 'vertical'
-            }}
+            className="input-field w-full min-h-[120px] resize-vertical py-2 px-3"
           />
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <div className="flex gap-2 justify-end">
             <button 
               onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} 
-              style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--surface-color)', color: 'var(--text-color)', fontSize: 12, cursor: 'pointer' }}
+              className="px-3 py-2 rounded-lg border border-white/10 bg-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-600 transition-colors"
             >
               Cancel
             </button>
@@ -104,18 +89,10 @@ export default function MessageBubble({
                 e.stopPropagation();
                 onMarkSent(stepNumber);
               }}
-              style={{ 
-                padding: '8px 16px', 
-                borderRadius: 10, 
-                background: 'var(--accent-color)', 
-                color: 'var(--bg-color)', 
-                fontSize: 12, 
-                fontWeight: 700, 
-                textDecoration: 'none', 
-                cursor: 'pointer' 
-              }}
+              className="btn-primary px-4 py-2 text-xs font-bold flex items-center gap-2"
             >
               Confirm & Open WhatsApp
+              <span className="text-xs">↗</span>
             </a>
           </div>
         </div>
