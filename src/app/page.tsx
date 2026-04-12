@@ -50,7 +50,7 @@ type NurtureMap = Record<string, NurtureEntry>;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CORRECT_PIN = '1234';
+const CORRECT_PIN = '132103';
 const NURTURE_KEY = 'tb_nurture_v2';
 const AUTH_KEY    = 'tb_auth_session';
 
@@ -113,15 +113,30 @@ export default function App() {
 
   const handleSync = async () => { setSyncing(true); await loadLeads(); setSyncing(false); };
 
-  const inputPin = (d: string) => {
-    const next = pin + d; setPin(next);
-    if (next.length === 4) {
-      if (next === CORRECT_PIN) { sessionStorage.setItem(AUTH_KEY, '1'); setAuthed(true); }
-      else { setPinShake(true); setTimeout(() => { setPin(''); setPinShake(false); }, 700); }
-    }
-  };
+  const inputPin = useCallback((d: string) => {
+    setPin(prev => {
+      if (prev.length >= CORRECT_PIN.length) return prev;
+      const next = prev + d;
+      if (next.length === CORRECT_PIN.length) {
+        if (next === CORRECT_PIN) { sessionStorage.setItem(AUTH_KEY, '1'); setAuthed(true); }
+        else { setPinShake(true); setTimeout(() => { setPin(''); setPinShake(false); }, 700); }
+      }
+      return next;
+    });
+  }, []);
 
   const deletePin = () => setPin(p => p.slice(0, -1));
+
+  // Physical keyboard support for PIN screen
+  useEffect(() => {
+    if (authed) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') inputPin(e.key);
+      else if (e.key === 'Backspace') deletePin();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [authed, inputPin]);
 
   const handleSend     = (id: string) => setAwaitingSent(id);
   const handleMarkSent = (id: string) => {
@@ -414,7 +429,7 @@ function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: bool
           <div style={{ fontSize: 13, color: '#5a8a5a', marginTop: 4 }}>Lead Machine</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginBottom: 8, animation: shake ? 'shake 0.5s ease-in-out' : 'none' }}>
-          {[0,1,2,3].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? '#25D366' : 'transparent', border: `2px solid ${shake ? '#ef4444' : i < pin.length ? '#25D366' : '#1a2e1a'}`, transition: 'all 0.15s', boxShadow: i < pin.length ? '0 0 8px rgba(37,211,102,0.4)' : 'none' }} />)}
+          {[0,1,2,3,4,5].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? '#25D366' : 'transparent', border: `2px solid ${shake ? '#ef4444' : i < pin.length ? '#25D366' : '#1a2e1a'}`, transition: 'all 0.15s', boxShadow: i < pin.length ? '0 0 8px rgba(37,211,102,0.4)' : 'none' }} />)}
         </div>
         <div style={{ height: 22, textAlign: 'center', marginBottom: 20 }}>
           {shake && <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 600 }}>Incorrect PIN. Try again.</span>}
