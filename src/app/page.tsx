@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { calculateIsDue, generateWhatsAppLink, NURTURE_SEQUENCE, personalizeMessage, autoSelectVariant } from '@/lib/nurture';
+import { calculateIsDue, generateWhatsAppLink, NURTURE_SEQUENCE, personalizeMessage, autoSelectVariant, autoExtractNickname } from '@/lib/nurture';
 import { useSession, signIn } from 'next-auth/react';
 import ViewSwitcher from '@/components/Dashboard/ViewSwitcher';
 import KanbanBoard from '@/components/Dashboard/KanbanBoard';
@@ -73,6 +73,10 @@ function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
       const nurture = nurtureMap[sl.sheet_id];
       let currentStep = parseInt(String(nurture?.current_step ?? '0'));
       if (isNaN(currentStep)) currentStep = 0;
+      
+      // Auto-extract nickname if missing in nurture data
+      const nickname = (nurture as any)?.nickname || autoExtractNickname(sl.full_name);
+
       return {
         id: sl.sheet_id,
         sheet_id: sl.sheet_id,
@@ -81,7 +85,7 @@ function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
         company_name: sl.company_name,
         created_at: sl.created_at,
         internal_tag: sl.internal_tag || '',
-        nickname: (nurture as any)?.nickname || '',
+        nickname: nickname,
         metadata: sl.metadata,
         current_step: currentStep,
         status: nurture?.status || 'active',
@@ -226,7 +230,7 @@ function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: L
 
 // ── Notification Bell ──────────────────────────────────────────────────────────
 
-function NotificationBell({ dueLeads }: { dueLeads: Lead[] }) {
+function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], leads: Lead[], onMarkSent: (id: string) => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -239,14 +243,90 @@ function NotificationBell({ dueLeads }: { dueLeads: Lead[] }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Request browser notification permission on mount
+  // PWA Registration and Smart Notifications
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+    async function handleNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
-  // Fire browser notification when new due leads appear
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        
+        // Ensure subscription
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') return;
+
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'placeholder_public_key'
+          });
+
+          await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subscription)
+          });
+        }
+
+        // 1. Detect New Leads
+        const knownLeadIds = JSON.parse(localStorage.getItem('notified_leads') || '[]');
+        const newLeads = leads.filter(l => !knownLeadIds.includes(l.id));
+        
+        if (newLeads.length > 0) {
+          const latestLead = newLeads[0];
+          await triggerPush({
+            title: '🎉 New Lead Arrived!',
+            body: `${latestLead.full_name} just joined the machine.`,
+            url: `/leads/${latestLead.id}?tab=all`,
+            waLink: generateWhatsAppLink(latestLead.phone_number, `Hi ${latestLead.full_name}, welcome!`)
+          }, subscription);
+          
+          localStorage.setItem('notified_leads', JSON.stringify([...knownLeadIds, ...newLeads.map(l => l.id)]));
+        }
+
+        // 2. Detect Newly Due Messages
+        const notifiedSteps = JSON.parse(localStorage.getItem('notified_steps') || '{}');
+        const newlyDue = dueLeads.filter(l => (notifiedSteps[l.id] || -1) < l.current_step);
+
+        if (newlyDue.length > 0) {
+          const dueLead = newlyDue[0];
+          await triggerPush({
+            title: '⏰ Follow-up Due',
+            body: `${dueLead.full_name} is due for message ${dueLead.current_step + 1}`,
+            url: `/leads/${dueLead.id}?tab=due`,
+            waLink: generateWhatsAppLink(dueLead.phone_number, personalizeMessage(
+              NURTURE_SEQUENCE[dueLead.current_step]?.message_text || '', 
+              dueLead.full_name, 
+              dueLead.metadata.clinic_type, 
+              dueLead.nickname
+            ))
+          }, subscription);
+
+          const updatedSteps = { ...notifiedSteps, [dueLead.id]: dueLead.current_step };
+          localStorage.setItem('notified_steps', JSON.stringify(updatedSteps));
+        }
+
+      } catch (e) {
+        console.error('Notification system error:', e);
+      }
+    }
+
+    async function triggerPush(payload: any, subscription: PushSubscription | null) {
+      if (!subscription) return;
+      await fetch('/api/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscriptions: [subscription],
+          notifications: [payload]
+        })
+      });
+    }
+
+    handleNotifications();
+  }, [leads, dueLeads]);
+
   const prevDueCount = useRef(dueLeads.length);
   useEffect(() => {
     if (
@@ -595,7 +675,11 @@ function AppInner() {
               + Add Lead
             </button>
             {/* Notification Bell */}
-            <NotificationBell dueLeads={dueLeads} />
+            <NotificationBell 
+              dueLeads={dueLeads} 
+              leads={leads} 
+              onMarkSent={handleMarkSent} 
+            />
             {/* Sync Button */}
             <button onClick={handleSync} disabled={syncing || loading} className="transition-enterprise" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontSize: 13, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
               <span style={{ display: 'inline-block', animation: syncing ? 'spin 0.8s linear infinite' : 'none' }}>⟳</span>

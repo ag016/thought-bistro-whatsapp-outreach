@@ -303,67 +303,6 @@ export default function ActionCenter({
   return (
     <div className="flex flex-col gap-4">
 
-      {/* ── APPOINTMENTS (if any) ── */}
-      {appointments.length > 0 && (
-        <div className="pane-card transition-enterprise">
-          <div className="text-[11px] font-bold tracking-widest mb-3.5 uppercase" style={{ color: 'var(--info-color)' }}>
-            📅 Booked Appointments
-          </div>
-          <div className="flex flex-col gap-3">
-            {appointments.map((apt, i) => {
-              const aptDate = new Date(apt.dateStr);
-              const isValidDate = !isNaN(aptDate.getTime());
-              const formattedDate = isValidDate
-                ? aptDate.toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-                : apt.dateStr;
-              const timeOnlyStr = isValidDate
-                ? aptDate.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-                : '';
-
-              return (
-                <div key={i} className="rounded-xl p-3" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
-                  <div className="flex flex-col gap-1 mb-2">
-                    <div className="text-sm font-bold" style={{ color: 'var(--text-color)' }}>
-                      📆 {formattedDate}
-                    </div>
-                    {apt.title && (
-                      <div className="text-xs" style={{ color: 'var(--text-color)', opacity: 0.7 }}>{apt.title}</div>
-                    )}
-                    {apt.bookerEmail && (
-                      <div className="text-[10px]" style={{ color: 'var(--info-color)', opacity: 0.8 }}>
-                        Booked by: {apt.bookerEmail}
-                      </div>
-                    )}
-                  </div>
-                  {/* 3 confirmation message buttons */}
-                  <div className="text-[10px] font-bold uppercase mb-1.5" style={{ color: 'var(--text-color)', opacity: 0.4 }}>
-                    Confirmation Messages
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    {APPOINTMENT_CONFIRMATIONS.map(conf => {
-                      const msg = conf.buildMessage(lead.full_name, timeOnlyStr || formattedDate, lead.nickname);
-                      const waLink = generateWhatsAppLink(lead.phone_number, msg);
-                      return (
-                        <a
-                          key={conf.id}
-                          href={waLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="transition-enterprise text-[11px] font-bold px-2.5 py-1.5 rounded-lg"
-                          style={{ background: 'rgba(59,130,246,0.15)', color: 'var(--info-color)', border: '1px solid rgba(59,130,246,0.3)', textDecoration: 'none', cursor: 'pointer' }}
-                        >
-                          {conf.label} ↗
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* ── NOTES ── */}
       <div className="pane-card transition-enterprise">
         <div className="text-[11px] font-bold tracking-widest mb-3.5 uppercase" style={{ color: 'var(--accent-color)' }}>Notes</div>

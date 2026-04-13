@@ -93,8 +93,9 @@ export const NURTURE_SEQUENCE: NurtureStep[] = [
  * For all subsequent steps, we count from last_sent_at.
  * Each step's day_offset represents days BETWEEN messages, not since inception.
  */
-export function calculateIsDue(lead: { status: string; current_step: number; created_at: string; last_sent_at: string | null }): boolean {
+export function calculateIsDue(lead: { status: string; current_step: number; created_at: string; last_sent_at: string | null; metadata?: { lead_status?: string } }): boolean {
   if (lead.status !== 'active' || lead.current_step >= NURTURE_SEQUENCE.length) return false;
+  if (lead.metadata?.lead_status === 'Not Qualified') return false;
   const currentStep = NURTURE_SEQUENCE[lead.current_step];
   // For the first message (step 0) use created_at; for subsequent steps use last_sent_at
   const baseline = lead.current_step === 0 || !lead.last_sent_at
@@ -131,11 +132,13 @@ export function generateWhatsAppLink(phone: string, message: string): string {
   return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
 }
 
-export function extractFirstName(fullName: string): string {
+export function autoExtractNickname(fullName: string): string {
   if (!fullName) return '';
-  const first = fullName.trim().split(' ')[0];
-  // Remove special characters
-  return first.replace(/[^a-zA-Z]/g, '');
+  const titles = ['Doctor', 'Prof\\.', 'Prof', 'Dr\\.', 'Dr', 'Mr\\.', 'Mr', 'Ms\\.', 'Ms', 'Mrs\\.', 'Mrs'];
+  const regex = new RegExp(`^(${titles.join('|')})\\s+`, 'i');
+  const cleaned = fullName.trim().replace(regex, '');
+  // Return only the first part of the cleaned name to be a concise nickname
+  return cleaned.split(' ')[0];
 }
 
 /**
@@ -146,12 +149,16 @@ export function extractFirstName(fullName: string): string {
  */
 export function personalizeMessage(text: string, fullName: string, clinicType?: string, nickname?: string): string {
   let nameToUse: string;
+  const titles = ['Doctor', 'Prof\\.', 'Prof', 'Dr\\.', 'Dr', 'Mr\\.', 'Mr', 'Ms\\.', 'Ms', 'Mrs\\.', 'Mrs'];
+  const titleRegex = new RegExp(`^(${titles.join('|')})`, 'i');
+
   if (nickname && nickname.trim()) {
-    // Nickname is used verbatim — user controls exactly what appears
-    nameToUse = nickname.trim();
+    const trimmedNick = nickname.trim();
+    // If nickname already starts with a title, use it verbatim. Otherwise, add "Dr. "
+    nameToUse = titleRegex.test(trimmedNick) ? trimmedNick : `Dr. ${trimmedNick}`;
   } else {
-    const firstName = extractFirstName(fullName);
-    nameToUse = firstName ? `Dr. ${firstName}` : 'Doctor';
+    const nick = autoExtractNickname(fullName);
+    nameToUse = nick ? `Dr. ${nick}` : 'Doctor';
   }
   
   return text
@@ -179,8 +186,19 @@ export const APPOINTMENT_CONFIRMATIONS: AppointmentConfirmation[] = [
     label: 'Day Before',
     offsetLabel: 'Send the day before appointment',
     buildMessage: (leadName, appointmentTime, nickname) => {
-      const name = nickname?.trim() || `Dr. ${extractFirstName(leadName)}` || 'Doctor';
-      return `Hi ${name}! 👋\n\nJust a quick reminder that we have our call scheduled for tomorrow at ${appointmentTime}.\n\nLooking forward to speaking with you and understanding how we can help grow your clinic. If anything comes up, just give me a heads-up!\n\nSee you tomorrow! 😊\n\n— Team Bistro`;
+      const titles = ['Doctor', 'Prof\\.', 'Prof', 'Dr\\.', 'Dr', 'Mr\\.', 'Mr', 'Ms\\.', 'Ms', 'Mrs\\.', 'Mrs'];
+      const titleRegex = new RegExp(`^(${titles.join('|')})`, 'i');
+      
+      let name = 'Doctor';
+      if (nickname && nickname.trim()) {
+        const trimmedNick = nickname.trim();
+        name = titleRegex.test(trimmedNick) ? trimmedNick : `Dr. ${trimmedNick}`;
+      } else {
+        const nick = autoExtractNickname(leadName);
+        name = nick ? `Dr. ${nick}` : 'Doctor';
+      }
+
+      return `Hi ${name}!\n\nJust a quick reminder that we have our call scheduled for tomorrow at ${appointmentTime}.\n\nLooking forward to speaking with you and understanding how we can help grow your clinic. If anything comes up, just give me a heads-up!\n\nSee you tomorrow!\n\n— Team Bistro`;
     }
   },
   {
@@ -188,8 +206,19 @@ export const APPOINTMENT_CONFIRMATIONS: AppointmentConfirmation[] = [
     label: 'Day Of',
     offsetLabel: 'Send on the day of appointment',
     buildMessage: (leadName, appointmentTime, nickname) => {
-      const name = nickname?.trim() || `Dr. ${extractFirstName(leadName)}` || 'Doctor';
-      return `Good morning ${name}! ☀️\n\nExcited for our call today at ${appointmentTime}!\n\nHere's the quick agenda:\n✅ Understand your current patient acquisition setup\n✅ Walk you through what we build\n✅ See if our system makes sense for your clinic\n\nTalk soon! 🚀\n\n— Team Bistro`;
+      const titles = ['Doctor', 'Prof\\.', 'Prof', 'Dr\\.', 'Dr', 'Mr\\.', 'Mr', 'Ms\\.', 'Ms', 'Mrs\\.', 'Mrs'];
+      const titleRegex = new RegExp(`^(${titles.join('|')})`, 'i');
+      
+      let name = 'Doctor';
+      if (nickname && nickname.trim()) {
+        const trimmedNick = nickname.trim();
+        name = titleRegex.test(trimmedNick) ? trimmedNick : `Dr. ${trimmedNick}`;
+      } else {
+        const nick = autoExtractNickname(leadName);
+        name = nick ? `Dr. ${nick}` : 'Doctor';
+      }
+
+      return `Good morning ${name}!\n\nExcited for our call today at ${appointmentTime}!\n\nHere's the quick agenda:\n- Understand your current patient acquisition setup\n- Walk you through what we build\n- See if our system makes sense for your clinic\n\nTalk soon!\n\n— Team Bistro`;
     }
   },
   {
@@ -197,8 +226,19 @@ export const APPOINTMENT_CONFIRMATIONS: AppointmentConfirmation[] = [
     label: '1 Hour Before',
     offsetLabel: 'Send 1 hour before appointment',
     buildMessage: (leadName, appointmentTime, nickname) => {
-      const name = nickname?.trim() || `Dr. ${extractFirstName(leadName)}` || 'Doctor';
-      return `Hi ${name}! ⏰\n\nJust a heads-up — our call is in about an hour, at ${appointmentTime}.\n\nNo prep needed on your end, just bring your questions!\n\nSee you soon! 😊\n\n— Team Bistro`;
+      const titles = ['Doctor', 'Prof\\.', 'Prof', 'Dr\\.', 'Dr', 'Mr\\.', 'Mr', 'Ms\\.', 'Ms', 'Mrs\\.', 'Mrs'];
+      const titleRegex = new RegExp(`^(${titles.join('|')})`, 'i');
+      
+      let name = 'Doctor';
+      if (nickname && nickname.trim()) {
+        const trimmedNick = nickname.trim();
+        name = titleRegex.test(trimmedNick) ? trimmedNick : `Dr. ${trimmedNick}`;
+      } else {
+        const nick = autoExtractNickname(leadName);
+        name = nick ? `Dr. ${nick}` : 'Doctor';
+      }
+
+      return `Hi ${name}!\n\nJust a heads-up — our call is in about an hour, at ${appointmentTime}.\n\nNo prep needed on your end, just bring your questions!\n\nSee you soon!\n\n— Team Bistro`;
     }
   }
 ];

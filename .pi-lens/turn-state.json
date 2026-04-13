@@ -4,11 +4,11 @@
       "modifiedRanges": [
         {
           "start": 1,
-          "end": 653
+          "end": 763
         }
       ],
       "importsChanged": true,
-      "lastEdit": "2026-04-12T17:25:04.417Z"
+      "lastEdit": "2026-04-13T13:07:40.843Z"
     },
     "project/src/app/settings/page.tsx": {
       "modifiedRanges": [
@@ -46,7 +46,7 @@
         }
       ],
       "importsChanged": true,
-      "lastEdit": "2026-04-12T13:55:09.867Z"
+      "lastEdit": "2026-04-13T12:11:05.789Z"
     },
     "project/src/app/api/calendar/route.ts": {
       "modifiedRanges": [
@@ -147,9 +147,53 @@
       ],
       "importsChanged": true,
       "lastEdit": "2026-04-12T13:54:50.558Z"
+    },
+    "project/public/sw.js": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 44
+        }
+      ],
+      "importsChanged": false,
+      "lastEdit": "2026-04-13T12:33:48.459Z"
+    },
+    "project/src/app/api/subscribe/route.ts": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 27
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-04-13T12:33:59.009Z"
+    },
+    "project/src/app/api/push/route.ts": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 50
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-04-13T12:34:53.999Z"
+    },
+    "project/src/lib/nurture.ts": {
+      "modifiedRanges": [
+        {
+          "start": 96,
+          "end": 96
+        },
+        {
+          "start": 98,
+          "end": 98
+        }
+      ],
+      "importsChanged": false,
+      "lastEdit": "2026-04-13T12:45:23.590Z"
     }
   },
   "turnCycles": 0,
   "maxCycles": 3,
-  "lastUpdated": "2026-04-12T17:25:04.417Z"
+  "lastUpdated": "2026-04-13T13:07:40.843Z"
 }

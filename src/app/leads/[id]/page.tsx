@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink, APPOINTMENT_CONFIRMATIONS } from '@/lib/nurture';
+import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink, APPOINTMENT_CONFIRMATIONS, autoExtractNickname } from '@/lib/nurture';
 import MessageBubble from '@/components/Leads/MessageBubble';
 import ActionCenter from '@/components/Leads/ActionCenter';
 import { Skeleton } from '@/components/UI/Skeleton';
@@ -59,25 +59,25 @@ I'm excited to get started on building your patient acquisition engine with our 
 Our singular focus is *Lead Quality*. We don't chase vanity metrics; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book.
 
 For this build, we handle all the heavy lifting, which includes:
-✅ 1 Dedicated Ad Set
-✅ 2 Research-Backed Authority Videos
-✅ Complete Tech Setup & Lead Forms
+- 1 Dedicated Ad Set
+- 2 Research-Backed Authority Videos
+- Complete Tech Setup & Lead Forms
 
 Ongoing Management:
-To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁
+To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month.
 
-🛡️ The 'Skin-in-the-Game' Guarantee:
+The 'Skin-in-the-Game' Guarantee:
 We are backing this with a strict performance guarantee. We guarantee you will get enough qualified leads in month one that you can make your money back—or we refund 50% of your total investment or waive the second half.
 
-💰 Investment & Terms:
+Investment & Terms:
 (All prices are exclusive of GST)
 
-1️⃣ Full Upfront: ₹51,000 (15% discount applied)
-2️⃣ Split Payment: ₹30,000 now and ₹30,000 on launch
+1. Full Upfront: ₹51,000 (15% discount applied)
+2. Split Payment: ₹30,000 now and ₹30,000 on launch
 
 You can view the full breakdown of deliverables here: https://www.thethoughtbistro.com/pricing
 
-Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊
+Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow!
 
 -Vishrut`
   },
@@ -91,25 +91,25 @@ I'm excited to get started on building your patient acquisition engine with our 
 Our singular focus is Lead Quality. We don't chase vanity metrics; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book.
 
 For this build, we handle all the heavy lifting, which includes:
-✅ 1 Dedicated Ad Set
-✅ 7 Research-Backed Authority Videos
-✅ Complete Tech Setup & Lead Forms
+- 1 Dedicated Ad Set
+- 7 Research-Backed Authority Videos
+- Complete Tech Setup & Lead Forms
 
 Ongoing Management:
-To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁
+To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month.
 
-🛡️ The 'Skin-in-the-Game' Guarantee:
+The 'Skin-in-the-Game' Guarantee:
 We are backing this with a strict performance guarantee. We guarantee you will get enough qualified leads in month one that you can make your money back—or we refund 50% of your total investment or waive the second half.
 
-💰 Investment & Terms:
+Investment & Terms:
 (All prices are exclusive of GST)
 
-1️⃣ Full Upfront: ₹1,48,750 (15% discount applied)
-2️⃣ Split Payment: ₹87,500 now and ₹87,500 on launch
+1. Full Upfront: ₹1,48,750 (15% discount applied)
+2. Split Payment: ₹87,500 now and ₹87,500 on launch
 
 You can view the full breakdown of deliverables here: https://www.thethoughtbistro.com/pricing
 
-Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊
+Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow!
 
 -Vishrut`
   },
@@ -123,27 +123,27 @@ I'm excited to get started on building your patient acquisition engine with our 
 Our singular focus is Lead Quality at scale. We don't chase vanity metrics; we are engineering a full-stack patient acquisition machine to bring you high-intent patients across multiple treatments simultaneously.
 
 For this build, we handle all the heavy lifting, which includes:
-🔥 2 Targeted Ad Sets (Different Patient Avatars)
-🔥 14 Research-Backed Authority Videos (7 per Ad Set)
-🔥 Split Lead Forms by Avatar
-🔥 Dual CAPI Configuration for Rapid Scaling
-✅ Complete Tech Setup & Lead Forms
+- 2 Targeted Ad Sets (Different Patient Avatars)
+- 14 Research-Backed Authority Videos (7 per Ad Set)
+- Split Lead Forms by Avatar
+- Dual CAPI Configuration for Rapid Scaling
+- Complete Tech Setup & Lead Forms
 
 Ongoing Management:
-To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁
+To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month.
 
-🛡️ The 'Skin-in-the-Game' Guarantee:
+The 'Skin-in-the-Game' Guarantee:
 We are backing this with a strict performance guarantee. We guarantee you will get enough qualified leads in month one that you can make your money back—or we refund 50% of your total investment or waive the second half.
 
-💰 Investment & Terms:
+Investment & Terms:
 (All prices are exclusive of GST)
 
-1️⃣ Full Upfront: ₹2,97,500 (15% discount applied)
-2️⃣ Split Payment: ₹1,75,000 now and ₹1,75,000 on launch
+1. Full Upfront: ₹2,97,500 (15% discount applied)
+2. Split Payment: ₹1,75,000 now and ₹1,75,000 on launch
 
 You can view the full breakdown of deliverables here: https://www.thethoughtbistro.com/pricing
 
-Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊
+Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow!
 
 -Vishrut`
   }
@@ -204,10 +204,9 @@ function parseAppointmentsFromNotes(notes: Note[]): ParsedAppointment[] {
     });
 }
 
-export default function LeadDetail({ params }: { params: { id: string } }) {
+function LeadDetailInner({ params }: { params: { id: string } }) {
   const router  = useRouter();
   const searchParams = useSearchParams();
-  // The tab to go back to (e.g. 'due', 'paused', 'active', 'all')
   const fromTab = searchParams.get('tab') || 'all';
 
   const [lead,         setLead]         = useState<Lead | null>(null);
@@ -219,6 +218,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput,   setNicknameInput]   = useState('');
   const [savingNickname,  setSavingNickname]  = useState(false);
+  const [mobileTab,    setMobileTab]    = useState<'info' | 'timeline' | 'actions'>('info');
 
   const { data: session } = useSession();
 
@@ -254,7 +254,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
           current_step: currentStep,
           status: nEntry.status || 'active',
           last_sent_at: nEntry.last_sent_at || null,
-          nickname: nEntry.nickname || found.nickname || '',
+          nickname: nEntry.nickname || found.nickname || autoExtractNickname(found.full_name),
         };
         setLead(resolvedLead);
         setNicknameInput(resolvedLead.nickname || '');
@@ -265,8 +265,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   }, [params.id]);
 
   useEffect(() => { loadLead(); }, [loadLead]);
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleMarkMsgSent = async (stepNumber?: number) => {
     if (!lead || stepNumber === undefined) return;
@@ -303,7 +301,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     });
   };
 
-  // ── FIXED: was sending 'internalTag', API expects 'tag' (now both accepted) ─
   const handleUpdateTag = async (newTag: string) => {
     if (!lead) return;
     setLead(prev => prev ? { ...prev, internal_tag: newTag } : prev);
@@ -372,12 +369,10 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     }
   };
 
-  // ── Back navigation — restores the tab the user was on ────────────────────
   const handleBack = () => {
     router.push(fromTab !== 'all' ? `/?tab=${fromTab}` : '/');
   };
 
-  // ── Book call — include booker email from session ─────────────────────────
   const handleBookCall = async ({ callDate, eventTitle, eventNote }: { callDate: string; eventTitle: string; eventNote: string }) => {
     if (!lead) return;
     const res = await fetch('/api/calendar', {
@@ -392,7 +387,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
       })
     });
     if (!res.ok) throw new Error('Failed to schedule');
-    // Include booker email in the note so it's visible in Lead Info
     const bookerEmail = session?.user?.email || '';
     const noteText = `Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}${bookerEmail ? ` [by ${bookerEmail}]` : ''}`;
     const now = new Date().toISOString();
@@ -404,32 +398,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     });
   };
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '24px' }}>
-         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-            <Skeleton variant="rect" width={40} height={40} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Skeleton variant="text" width={200} />
-              <Skeleton variant="text" width={120} />
-            </div>
-         </div>
-         <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr 320px', gap: '24px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Skeleton variant="rect" height={120} />
-              <Skeleton variant="rect" height={300} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Skeleton variant="rect" height={600} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Skeleton variant="rect" height={600} />
-            </div>
-         </div>
-      </div>
-    );
-  }
-
+  if (loading) return null; // Handled by Suspense fallback
   if (!lead) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--accent-color)', gap: 12 }}>
@@ -441,8 +410,8 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   }
 
   const isCompleted = lead.current_step >= NURTURE_SEQUENCE.length;
-  const daysUntil   = getDaysUntilDue(lead);
-  const m           = lead.metadata;
+  const daysUntil = getDaysUntilDue(lead);
+  const m = lead.metadata;
   const appointments = parseAppointmentsFromNotes(notes);
 
   return (
@@ -472,11 +441,34 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
         </div>
       </div>
 
+      {/* --- Mobile Tab Navigation --- */}
+      <div className="mobile-tab-nav" style={{ display: 'none', padding: '16px 24px', gap: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        {['info', 'timeline', 'actions'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setMobileTab(tab as any)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 12,
+              background: mobileTab === tab ? 'var(--accent-color)' : 'var(--surface-color)',
+              color: mobileTab === tab ? 'var(--bg-color)' : 'var(--text-color)',
+              border: '1px solid var(--border-color)',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              textTransform: 'capitalize'
+            }}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
       <div style={{ padding: '24px' }}>
         <div className="detail-grid">
 
           {/* --- LEFT PANEL: Lead Info & Identity --- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'info' ? '' : 'hidden-mobile'}>
 
             {/* Nurture Progress */}
             <div className="pane-card">
@@ -649,7 +641,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
           </div>
 
           {/* --- CENTER PANEL: Message Timeline --- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'timeline' ? '' : 'hidden-mobile'}>
             <div className="pane-card">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>MESSAGE TIMELINE</div>
               <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6, marginBottom: 20 }}>
@@ -664,7 +656,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
 
                   const selectedVariant = autoSelectVariant(step.step_number, m.lead_quality_desc, step.variants);
                   const baseText = selectedVariant ? selectedVariant.text : step.message_text;
-                  // Pass nickname to personalize — fixes "Dr. Dr." issue
                   const finalText = personalizeMessage(baseText, lead.full_name, m.clinic_type, lead.nickname);
 
                   return (
@@ -693,7 +684,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                   );
                 })}
 
-                {/* Activity Log entries */}
                 <div className="system-event">
                   <span>Lead created on {fmt(lead.created_at)}</span>
                 </div>
@@ -712,29 +702,61 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
           </div>
 
           {/* --- RIGHT PANEL: Action Center --- */}
-          <ActionCenter
-            lead={lead}
-            notes={notes}
-            setNotes={setNotes}
-            session={session}
-            fmtDate={fmt}
-            onAddNote={async (text) => {
-              if (!lead) return;
-              const now = new Date().toISOString();
-              setNotes(prev => [...prev, { lead_id: lead.id, note_text: text, created_at: now, source: 'manual' }]);
-              await fetch('/api/notes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ leadId: lead.id, noteText: text, createdAt: now })
-              });
-            }}
-            onDeleteNote={handleDeleteNote}
-            onBookCall={handleBookCall}
-            onDeleteEvent={handleDeleteEvent}
-            templates={MESSAGE_TEMPLATES}
-          />
+          <div className={mobileTab === 'actions' ? '' : 'hidden-mobile'}>
+            <ActionCenter
+              lead={lead}
+              notes={notes}
+              setNotes={setNotes}
+              session={session}
+              fmtDate={fmt}
+              onAddNote={async (text) => {
+                if (!lead) return;
+                const now = new Date().toISOString();
+                setNotes(prev => [...prev, { lead_id: lead.id, note_text: text, created_at: now, source: 'manual' }]);
+                await fetch('/api/notes', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ leadId: lead.id, noteText: text, createdAt: now })
+                });
+              }}
+              onDeleteNote={handleDeleteNote}
+              onBookCall={handleBookCall}
+              onDeleteEvent={handleDeleteEvent}
+              templates={MESSAGE_TEMPLATES}
+            />
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LeadDetail({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '24px' }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
+            <Skeleton variant="rect" width={40} height={40} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Skeleton variant="text" width={200} />
+              <Skeleton variant="text" width={120} />
+            </div>
+         </div>
+         <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr 320px', gap: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Skeleton variant="rect" height={120} />
+              <Skeleton variant="rect" height={300} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Skeleton variant="rect" height={600} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Skeleton variant="rect" height={600} />
+            </div>
+         </div>
+      </div>
+    }>
+      <LeadDetailInner params={params} />
+    </Suspense>
   );
 }
