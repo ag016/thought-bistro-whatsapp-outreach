@@ -206,8 +206,7 @@ function parseAppointmentsFromNotes(notes: Note[]): ParsedAppointment[] {
 
 function LeadDetailInner({ params }: { params: { id: string } }) {
   const router  = useRouter();
-  const searchParams = useSearchParams();
-  const fromTab = searchParams.get('tab') || 'all';
+  const [fromTab, setFromTab] = useState('all');
 
   const [lead,         setLead]         = useState<Lead | null>(null);
   const [nurtureRaw,   setNurtureRaw]   = useState<Record<string, string>>({});
@@ -223,6 +222,12 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
   const { data: session } = useSession();
 
   useEffect(() => {
+    // Safe access to search params on client to avoid hydration/suspense errors
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      setFromTab(sp.get('tab') || 'all');
+    }
+
     const isAuthed = typeof window !== 'undefined' && (sessionStorage.getItem(AUTH_KEY) === '1' || !!session);
     if (!isAuthed) {
       router.push('/');
@@ -238,9 +243,18 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
         fetch('/api/nurture'),
         fetch(`/api/notes?leadId=${encodeURIComponent(paramId)}`)
       ]);
-      const leadsData   = await leadsRes.json() as { leads?: any[] };
-      const nurtureData = await nurtureRes.json() as { nurture?: Record<string, Record<string, string>> };
-      const notesData   = await notesRes.json() as { notes?: Note[] };
+
+      // Safely parse each response — a 500 error may return non-JSON
+      const leadsData: { leads?: any[] } = leadsRes.ok
+        ? await leadsRes.json().catch(() => ({ leads: [] }))
+        : { leads: [] };
+      const nurtureData: { nurture?: Record<string, Record<string, string>> } = nurtureRes.ok
+        ? await nurtureRes.json().catch(() => ({ nurture: {} }))
+        : { nurture: {} };
+      const notesData: { notes?: Note[] } = notesRes.ok
+        ? await notesRes.json().catch(() => ({ notes: [] }))
+        : { notes: [] };
+
       const found = (leadsData.leads ?? []).find(l => l.sheet_id === paramId || l.id === paramId);
       if (found) {
         const nMap = nurtureData.nurture ?? {};
@@ -261,7 +275,11 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
         setNurtureRaw(nEntry);
       }
       setNotes(notesData.notes ?? []);
-    } finally { setLoading(false); }
+    } catch (e) {
+      console.error('[LeadDetail] loadLead error:', e);
+    } finally {
+      setLoading(false);
+    }
   }, [params.id]);
 
   useEffect(() => { loadLead(); }, [loadLead]);
