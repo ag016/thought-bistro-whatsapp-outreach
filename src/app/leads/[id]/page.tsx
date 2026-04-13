@@ -51,17 +51,100 @@ const MESSAGE_TEMPLATES = [
   {
     id: 'starter',
     name: 'Starter Capacity',
-    text: `Hi [NAME], great speaking with you!\n\nI'm excited to get started on building your patient acquisition engine with our Starter Capacity setup (₹60,000/campaign) tailored specifically for your [CLINIC_TYPE].\n\nOur singular focus with this build is *Lead Quality*. We don't chase vanity metrics, fluff, or empty clicks; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book. For this campaign, we handle all the heavy lifting to make that happen, which includes:\n* 1 Dedicated Ad Set\n* 2 Authority Video Ads\n* Complete Tech Setup & Lead Forms\nNote: Our ongoing support fee of ₹15,000/month per campaign is completely waived for your first month.\n\nWe guarantee you will get enough qualified leads in month one to make your money back—or we refund 50% of your total investment or waive the second half. \n\nFor a full breakdown of the deliverables and our other tiers, review our pricing page: https://www.thethoughtbistro.com/pricing\n\nThink over whether you'd prefer to proceed with the 15% discounted upfront payment of ₹51,000 or the 50/50 split of ₹30,000 now and ₹30,000 on launch, and we can finalize everything during our meeting tomorrow!\n-Vishrut\n\nP.S. Since we are already guaranteeing the baseline to cover your investment, the only real question left to consider is: do you want more high-quality leads, and exactly how many can your clinic's team realistically handle?`
+    text: `Hi [NAME], great speaking with you!
+
+I'm excited to get started on building your patient acquisition engine with our Starter Capacity setup (₹60,000/campaign) tailored specifically for your [CLINIC_TYPE].
+
+Our singular focus is *Lead Quality*. We don't chase vanity metrics; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book.
+
+For this build, we handle all the heavy lifting, which includes:
+✅ 1 Dedicated Ad Set
+✅ 2 Research-Backed Authority Videos
+✅ Complete Tech Setup & Lead Forms
+
+Ongoing Management:
+To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁
+
+🛡️ The 'Skin-in-the-Game' Guarantee:
+We are backing this with a strict performance guarantee. We guarantee you will get enough qualified leads in month one that you can make your money back—or we refund 50% of your total investment or waive the second half.
+
+💰 Investment & Terms:
+(All prices are exclusive of GST)
+
+1️⃣ Full Upfront: ₹51,000 (15% discount applied)
+2️⃣ Split Payment: ₹30,000 now and ₹30,000 on launch
+
+You can view the full breakdown of deliverables here: https://www.thethoughtbistro.com/pricing
+
+Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊
+
+-Vishrut`
   },
   {
     id: 'growth',
     name: 'Growth Capacity',
-    text: `Hi [NAME], great speaking with you!\n\nI'm excited to get started on building your patient acquisition engine with our Growth Capacity setup (₹1,75,000/campaign) designed for [CLINIC_TYPE].\n\nOur singular focus is Lead Quality. We don't chase vanity metrics; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book. \n\nFor this build, we handle all the heavy lifting, which includes:\n✅ 1 Dedicated Ad Set\n✅ 7 Research-Backed Authority Videos\n✅ Complete Tech Setup & Lead Forms\n\nOngoing Management:\nTo ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁\n\n🛡️ The 'Skin-in-the-Game' Guarantee:\nWe are backing this with a strict performance guarantee. We guarantee you will get enough qualified leads in month one to make your money back—or we refund 50% of your total investment or waive the second half.\n\n💰 Investment & Terms:\n(All prices are exclusive of GST)\n\n1️⃣ Full Upfront: ₹1,48,750 (15% discount applied)\n2️⃣ Split Payment: ₹87,500 now and ₹87,500 on launch\n\nYou can view the full breakdown of deliverables here: https://www.thethoughtbistro.com/pricing\n\nThink over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊\n\n-Vishrut`
+    text: `Hi [NAME], great speaking with you!
+
+I'm excited to get started on building your patient acquisition engine with our Growth Capacity setup (₹1,75,000/campaign) designed for [CLINIC_TYPE].
+
+Our singular focus is Lead Quality. We don't chase vanity metrics; we are engineering an infrastructure strictly to bring you high-intent patients who are actually ready to book.
+
+For this build, we handle all the heavy lifting, which includes:
+✅ 1 Dedicated Ad Set
+✅ 7 Research-Backed Authority Videos
+✅ Complete Tech Setup & Lead Forms
+
+Ongoing Management:
+To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁
+
+🛡️ The 'Skin-in-the-Game' Guarantee:
+We are backing this with a strict performance guarantee. We guarantee you will get enough qualified leads in month one that you can make your money back—or we refund 50% of your total investment or waive the second half.
+
+💰 Investment & Terms:
+(All prices are exclusive of GST)
+
+1️⃣ Full Upfront: ₹1,48,750 (15% discount applied)
+2️⃣ Split Payment: ₹87,500 now and ₹87,500 on launch
+
+You can view the full breakdown of deliverables here: https://www.thethoughtbistro.com/pricing
+
+Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊
+
+-Vishrut`
   },
   {
     id: 'domination',
     name: 'Market Domination',
-    text: `Hi [NAME], great speaking with you!\n\nI'm excited to present our Market Domination setup for your [CLINIC_TYPE].\n\nThis is built for clinics scaling ad budgets safely with sales teams. \n\nDeliverables:\n🔥 2 Targeted Ad Sets (Different Avatars)\n🔥 14 Total Video Ads (7 per Ad Set)\n🔥 Split Lead Forms by Avatar\n🔥 Dual CAPI config for rapid scaling\n\nOngoing Management:\n₹15,000/month per campaign. 1st Month Included Free.\n\n🛡️ The First-Month Clinic Guarantee:\nWe guarantee you will get enough qualified leads in month one to make your money back—or we refund 50% of your total investment with us or do not pay us the second half.\n\nReview full details here: https://www.thethoughtbistro.com/pricing\n\nLet's dominate your local market. \n\n-Vishrut`
+    text: `Hi [NAME], great speaking with you!
+
+I'm excited to get started on building your patient acquisition engine with our Market Domination setup (₹3,50,000/campaign) engineered for [CLINIC_TYPE].
+
+Our singular focus is Lead Quality at scale. We don't chase vanity metrics; we are engineering a full-stack patient acquisition machine to bring you high-intent patients across multiple treatments simultaneously.
+
+For this build, we handle all the heavy lifting, which includes:
+🔥 2 Targeted Ad Sets (Different Patient Avatars)
+🔥 14 Research-Backed Authority Videos (7 per Ad Set)
+🔥 Split Lead Forms by Avatar
+🔥 Dual CAPI Configuration for Rapid Scaling
+✅ Complete Tech Setup & Lead Forms
+
+Ongoing Management:
+To ensure the system stays optimized, there is an ongoing support fee of ₹15,000/month per campaign. However, to get us off to a flying start, this fee is completely waived for your first month. 🎁
+
+🛡️ The 'Skin-in-the-Game' Guarantee:
+We are backing this with a strict performance guarantee. We guarantee you will get enough qualified leads in month one that you can make your money back—or we refund 50% of your total investment or waive the second half.
+
+💰 Investment & Terms:
+(All prices are exclusive of GST)
+
+1️⃣ Full Upfront: ₹2,97,500 (15% discount applied)
+2️⃣ Split Payment: ₹1,75,000 now and ₹1,75,000 on launch
+
+You can view the full breakdown of deliverables here: https://www.thethoughtbistro.com/pricing
+
+Think over which payment option you'd prefer, and we can finalize everything during our meeting tomorrow! 😊
+
+-Vishrut`
   }
 ];
 

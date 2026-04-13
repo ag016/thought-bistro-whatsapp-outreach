@@ -165,6 +165,14 @@ export default function KanbanBoard({ leads, onUpdateTag }: KanbanBoardProps) {
                            {m.platform || ''} {m.ad_name ? `• ${m.ad_name}` : ''}
                          </div>
                        </div>
+                       {m.lead_quality_desc && (
+                         <div style={{ gridColumn: 'span 2', marginTop: 4, paddingTop: 10, borderTop: '1px solid color-mix(in srgb, var(--border-color), transparent 50%)' }}>
+                           <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, fontWeight: 600, marginBottom: 4 }}>CURRENT LEAD SITUATION</div>
+                           <div style={{ fontSize: 12, color: 'var(--text-color)', fontWeight: 500, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                             {m.lead_quality_desc}
+                           </div>
+                         </div>
+                       )}
                     </div>
 
                     {/* Footer: Step & Tag Switch */}
