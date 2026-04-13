@@ -853,6 +853,9 @@ function AppInner() {
         ))}
       </div>
 
+      {/* ── PWA Prompt ── */}
+      <PWAInstallPrompt />
+
       {/* ── Add Lead Modal ── */}
       {showAddLead && (
         <AddLeadModal
@@ -936,6 +939,112 @@ function EmptyState({ tab }: { tab: string }) {
       <div style={{ fontSize: 52, marginBottom: 14 }}>{tab === 'due' ? '🎉' : '📭'}</div>
       <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-color)', marginBottom: 6 }}>{tab === 'due' ? 'All caught up!' : 'No results found'}</div>
       <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6 }}>Try clearing filters to see more leads.</div>
+    </div>
+  );
+}
+
+function PWAInstallPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if already in standalone mode
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+    // Check if dismissed before
+    if (localStorage.getItem('pwa_prompt_dismissed') === 'true') return;
+
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+    // iOS Detection
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
+    
+    if (isIOSDevice && isSafari) {
+      setIsIOS(true);
+      setShowPrompt(true);
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setShowPrompt(false);
+    setDeferredPrompt(null);
+  };
+
+  const handleDismiss = () => {
+    setShowPrompt(false);
+    localStorage.setItem('pwa_prompt_dismissed', 'true');
+  };
+
+  if (!showPrompt) return null;
+
+  return (
+    <div className="animate-fade-in" style={{
+      position: 'fixed',
+      bottom: 90, 
+      left: 16,
+      right: 16,
+      zIndex: 1000,
+      background: 'var(--accent-color)',
+      color: 'var(--bg-color)',
+      padding: '16px',
+      borderRadius: 16,
+      boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10,
+      border: '1px solid rgba(255,255,255,0.1)'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}>
+            <img src="https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 13 }}>Install Bistro CRM</div>
+            <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 600 }}>Get instant follow-up alerts</div>
+          </div>
+        </div>
+        <button onClick={handleDismiss} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', opacity: 0.6, fontSize: 16 }}>✕</button>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.4, opacity: 0.9 }}>
+        {isIOS 
+          ? 'Tap the share button (square with arrow) and select "Add to Home Screen" to install.' 
+          : 'Install this app on your home screen for a better experience and real-time push notifications.'}
+      </div>
+      {!isIOS && (
+        <button 
+          onClick={handleInstall}
+          className="transition-enterprise"
+          style={{ 
+            background: 'var(--bg-color)', 
+            color: 'var(--accent-color)', 
+            border: 'none', 
+            borderRadius: 10, 
+            padding: '10px', 
+            fontWeight: 800, 
+            fontSize: 12, 
+            cursor: 'pointer' 
+          }}
+        >
+          Install App
+        </button>
+      )}
     </div>
   );
 }
