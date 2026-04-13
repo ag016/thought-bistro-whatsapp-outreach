@@ -217,7 +217,7 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <img 
               src="https://d1yei2z3i6k35z.cloudfront.net/10516146/67e5ae77eae02_LogoBanner.001.png" 
-              alt="OtoChat Logo" 
+              alt="Bistro CRM Logo" 
               style={{ height: 28, width: 'auto', objectFit: 'contain' }} 
             />
             <span style={{ fontSize: 12, color: 'var(--accent-color)', opacity: 0.8, fontWeight: 600, borderLeft: '1px solid var(--border-color)', paddingLeft: 12 }}>
@@ -386,11 +386,11 @@ function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: bool
           }}>
             <img 
               src="https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png" 
-              alt="OtoChat" 
+              alt="Bistro CRM" 
               style={{ width: '80%', height: '80%', objectFit: 'contain' }} 
             />
           </div>
-          <div style={{ fontSize: 23, fontWeight: 800, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>OtoChat CRM</div>
+          <div style={{ fontSize: 23, fontWeight: 800, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>Bistro CRM</div>
           <div style={{ fontSize: 13, color: 'var(--accent-color)', fontWeight: 600, marginTop: 4 }}>Enterprise Lead Management</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginBottom: 8, animation: shake ? 'shake 0.5s ease-in-out' : 'none' }}>

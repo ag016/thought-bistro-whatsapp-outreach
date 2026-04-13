@@ -6,7 +6,7 @@ import { Providers } from '@/components/Providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'OtoChat CRM — Lead Machine',
+  title: 'Bistro CRM — Lead Machine',
   description: 'WhatsApp nurture dashboard for clinic leads',
   icons: {
     icon: 'https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png',

@@ -76,7 +76,7 @@ export default function SettingsPage() {
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>GENERAL</div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <SettingsRow label="CRM Name" value="OtoChat Lead Machine" />
+            <SettingsRow label="CRM Name" value="Bistro CRM Lead Machine" />
             <SettingsRow label="Currency" value="INR (₹)" />
             <SettingsRow label="Timezone" value="Asia/Kolkata (IST)" />
             <SettingsRow label="Notifications" value="Enabled" isToggle />
