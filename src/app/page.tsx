@@ -574,6 +574,7 @@ function AppInner() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const [mounted,      setMounted]      = useState(false);
   const [authed,       setAuthed]       = useState(false);
   const [pin,          setPin]          = useState('');
   const [pinShake,     setPinShake]     = useState(false);
@@ -587,6 +588,7 @@ function AppInner() {
   const [showAddLead,  setShowAddLead]  = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (typeof window !== 'undefined' && sessionStorage.getItem(AUTH_KEY) === '1') setAuthed(true);
   }, []);
 
@@ -710,7 +712,14 @@ function AppInner() {
     setActiveFilters({ clinic: '', status: '', tag: '', problem: '' });
   };
 
-  if (status === 'loading') return null;
+  if (!mounted || status === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color)' }}>
+        <div style={{ width: 32, height: 32, border: '2px solid var(--accent-color)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
+    );
+  }
+
   if (!isAccessGranted) return <PinScreen pin={pin} shake={pinShake} onInput={inputPin} onDelete={deletePin} />;
 
   return (

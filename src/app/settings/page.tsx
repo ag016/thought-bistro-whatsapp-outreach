@@ -92,9 +92,80 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* App Section */}
+        <PWAInstallSection />
+
         <div style={{ textAlign: 'center', marginTop: 40, opacity: 0.5 }}>
           <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.4 }}>v1.2.0 Stable Build</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PWAInstallSection() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
+    if (isIOSDevice && isSafari) setIsIOS(true);
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+  };
+
+  if (isStandalone) {
+    return (
+      <div className="settings-section">
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>APP</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--accent-color)', fontSize: 13, fontWeight: 600 }}>
+          <span>✓</span>
+          <span>Bistro CRM is installed as an app</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="settings-section">
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>APP</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.7 }}>
+          Install Bistro CRM on your home screen for instant access and real-time push notifications.
+        </div>
+        
+        {isIOS ? (
+          <div style={{ padding: '12px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 12, fontSize: 12, color: 'var(--info-color)', fontWeight: 600 }}>
+            To install: Tap the "Share" button in Safari, then select "Add to Home Screen".
+          </div>
+        ) : (
+          <button 
+            disabled={!deferredPrompt}
+            onClick={handleInstall}
+            className="transition-enterprise"
+            style={{ width: '100%', padding: '12px', borderRadius: 12, background: deferredPrompt ? 'var(--accent-color)' : 'var(--surface-color)', border: 'none', color: deferredPrompt ? 'var(--bg-color)' : 'var(--text-color)', opacity: deferredPrompt ? 1 : 0.5, fontSize: 14, fontWeight: 700, cursor: deferredPrompt ? 'pointer' : 'default' }}>
+            {deferredPrompt ? 'Install Bistro CRM' : 'Installation unavailable'}
+          </button>
+        )}
       </div>
     </div>
   );
