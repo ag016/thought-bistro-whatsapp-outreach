@@ -21,6 +21,7 @@ interface Lead {
   company_name: string;
   current_step: number;
   status: LeadStatus;
+  internal_tag?: string;
   last_sent_at: string | null;
   created_at: string;
   metadata: {
@@ -42,6 +43,7 @@ interface SheetLead {
   phone_number: string;
   company_name: string;
   created_at: string;
+  internal_tag?: string;
   metadata: Lead['metadata'];
 }
 
@@ -67,7 +69,7 @@ function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
       const nurture = nurtureMap[sl.sheet_id];
       let currentStep = parseInt(String(nurture?.current_step ?? '0'));
       if (isNaN(currentStep)) currentStep = 0;
-      return { id: sl.sheet_id, sheet_id: sl.sheet_id, full_name: sl.full_name, phone_number: sl.phone_number, company_name: sl.company_name, created_at: sl.created_at, metadata: sl.metadata, current_step: currentStep, status: nurture?.status || 'active', last_sent_at: nurture?.last_sent_at || null } as Lead;
+      return { id: sl.sheet_id, sheet_id: sl.sheet_id, full_name: sl.full_name, phone_number: sl.phone_number, company_name: sl.company_name, created_at: sl.created_at, internal_tag: sl.internal_tag || '', metadata: sl.metadata, current_step: currentStep, status: nurture?.status || 'active', last_sent_at: nurture?.last_sent_at || null } as Lead;
     })
     .reverse(); // LIFO — newest leads (bottom of sheet) appear first
 }
