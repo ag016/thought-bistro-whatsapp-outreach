@@ -83,3 +83,89 @@ export async function GET() {
 
   return NextResponse.json({ leads });
 }
+
+// ── POST /api/leads — Create a manual lead ─────────────────────────────────────
+
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET ?? 'tb_secret_2024';
+
+export async function POST(req: Request) {
+  const body = await req.json() as {
+    full_name?: string;
+    phone_number?: string;
+    company_name?: string;
+    clinic_type?: string;
+    nickname?: string;
+    lead_quality_desc?: string;
+  };
+
+  if (!body.full_name && !body.phone_number) {
+    return NextResponse.json({ error: 'full_name or phone_number required' }, { status: 400 });
+  }
+
+  // Generate a unique manual lead ID
+  const manualId = `manual_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const now = new Date().toISOString();
+
+  const newLead = {
+    sheet_id:     manualId,
+    full_name:    body.full_name     || '',
+    phone_number: body.phone_number  || '',
+    company_name: body.company_name  || '',
+    internal_tag: '',
+    created_at:   now,
+    metadata: {
+      clinic_type:       body.clinic_type       || '',
+      treatment_price:   '',
+      lead_quality_desc: body.lead_quality_desc || '',
+      notes:             '',
+      ad_name:           'Manual Entry',
+      campaign_name:     'Manual Entry',
+      platform:          'Manual',
+      india_time:        now,
+      lead_status:       'CREATED',
+    },
+  };
+
+  // Forward to AppScript if configured
+  if (APPS_SCRIPT_URL) {
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          action:      'addManualLead',
+          secret:      WEBHOOK_SECRET,
+          leadId:      manualId,
+          nickname:    body.nickname || '',
+          ...newLead,
+        }),
+        redirect: 'follow',
+      });
+    } catch {
+      // Non-fatal — return lead to client anyway; sheet sync may lag
+    }
+  }
+
+  // Also bootstrap the nurture row so the lead is immediately trackable
+  if (APPS_SCRIPT_URL) {
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          action:      'upsertNurture',
+          secret:      WEBHOOK_SECRET,
+          leadId:      manualId,
+          currentStep: 0,
+          status:      'active',
+          lastSentAt:  '',
+          nickname:    body.nickname || '',
+        }),
+        redirect: 'follow',
+      });
+    } catch { /* non-fatal */ }
+  }
+
+  return NextResponse.json({ lead: newLead, id: manualId });
+}

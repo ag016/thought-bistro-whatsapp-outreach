@@ -4,9 +4,10 @@ const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
 const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET ?? 'tb_secret_2024';
 
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { leadId?: string; tag?: string };
+  const body = await req.json() as { leadId?: string; tag?: string; internalTag?: string };
+  const tagValue = body.tag ?? body.internalTag; // accept both key names
 
-  if (!body.leadId || body.tag === undefined) {
+  if (!body.leadId || tagValue === undefined) {
     return NextResponse.json({ error: 'leadId and tag required' }, { status: 400 });
   }
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
         action:    'updateTag',
         secret:    WEBHOOK_SECRET,
         leadId:    body.leadId,
-        tag:       body.tag
+        tag:       tagValue
       }),
       redirect: 'follow',
     });

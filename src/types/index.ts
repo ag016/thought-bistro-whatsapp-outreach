@@ -9,6 +9,7 @@ export interface Lead {
   current_step: number; // 0-indexed (0 = Message 1)
   status: LeadStatus;
   internal_tag?: string;
+  nickname?: string; // Preferred name for messages (avoids "Dr. Dr." issue)
   last_sent_at: string | null;
   created_at: string;
   metadata: any;

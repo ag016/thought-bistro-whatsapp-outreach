@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import MessageBubble from '@/components/Leads/MessageBubble';
-import { generateWhatsAppLink, personalizeMessage } from '@/lib/nurture';
+import { generateWhatsAppLink, personalizeMessage, APPOINTMENT_CONFIRMATIONS } from '@/lib/nurture';
 
 interface Note {
   lead_id: string;
   note_text: string;
   created_at: string;
   source: string;
+  /** If this note is a superseded original, its edit timestamp */
+  edited_by?: string;
 }
 
 interface ActionCenterProps {
@@ -24,6 +26,192 @@ interface ActionCenterProps {
   templates: any[];
 }
 
+// ── Auto-expanding textarea ────────────────────────────────────────────────────
+
+function AutoTextarea({
+  value,
+  onChange,
+  placeholder,
+  onKeyDown,
+  className,
+  style,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.height = 'auto';
+      ref.current.style.height = `${ref.current.scrollHeight}px`;
+    }
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      onKeyDown={onKeyDown}
+      className={className}
+      style={{ resize: 'none', overflow: 'hidden', minHeight: 40, ...style }}
+    />
+  );
+}
+
+// ── Appointment cards parsed from notes ───────────────────────────────────────
+
+interface ParsedAppointment {
+  raw: string;        // original note text
+  dateStr: string;    // extracted date/time string
+  title: string;      // event title if any
+  bookerEmail: string;
+}
+
+function parseAppointmentNotes(notes: Note[]): ParsedAppointment[] {
+  return notes
+    .filter(n => n.note_text.startsWith('Scheduled call for ') && n.source === 'system')
+    .map(n => {
+      // "Scheduled call for <date> (<title>)  [by <email>]"
+      const match = n.note_text.match(/^Scheduled call for (.+?)(?:\s+\(([^)]+)\))?(?:\s+\[by ([^\]]+)\])?$/);
+      return {
+        raw: n.note_text,
+        dateStr: match?.[1] || n.note_text.replace('Scheduled call for ', ''),
+        title: match?.[2] || '',
+        bookerEmail: match?.[3] || '',
+      };
+    });
+}
+
+// ── NoteItem — single note with edit support ─────────────────────────────────
+
+function NoteItem({
+  note,
+  fmtDate,
+  onDelete,
+  onEdit,
+}: {
+  note: Note;
+  fmtDate: (d: string) => string;
+  onDelete: (text: string) => void;
+  onEdit: (oldText: string, newText: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(note.note_text);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const isOriginal = note.note_text.startsWith('[ORIGINAL] ');
+  const isEdit     = note.note_text.startsWith('[EDITED] ');
+
+  const displayText = isEdit
+    ? note.note_text.replace(/^\[EDITED\] /, '')
+    : isOriginal
+      ? note.note_text.replace(/^\[ORIGINAL\] /, '')
+      : note.note_text;
+
+  if (isOriginal) {
+    // Render as collapsed "history" — only shown when parent toggles it
+    return null; // handled by parent grouping; skip rendering inline
+  }
+
+  return (
+    <div
+      className="rounded-xl transition-enterprise"
+      style={{
+        background: 'var(--surface-color)',
+        border: '1px solid var(--border-color)',
+        overflow: 'hidden',
+      }}
+    >
+      <div className="p-3">
+        {/* Note body */}
+        {editing ? (
+          <div className="flex flex-col gap-2">
+            <AutoTextarea
+              value={editText}
+              onChange={setEditText}
+              className="input-field w-full"
+              style={{ fontSize: 13 }}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setEditing(false); setEditText(note.note_text); }}
+                className="text-xs px-3 py-1.5 rounded-lg"
+                style={{ background: 'var(--border-color)', color: 'var(--text-color)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (editText.trim() && editText.trim() !== note.note_text) {
+                    onEdit(note.note_text, editText.trim());
+                  }
+                  setEditing(false);
+                }}
+                className="text-xs px-3 py-1.5 rounded-lg font-bold"
+                style={{ background: 'var(--accent-color)', color: 'var(--bg-color)' }}
+              >
+                Save Edit
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="text-sm leading-relaxed"
+            style={{ color: 'var(--text-color)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+          >
+            {displayText}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px]" style={{ color: 'var(--text-color)', opacity: 0.4 }}>
+              {note.source === 'imported' ? 'Imported from Sheet' : fmtDate(note.created_at)}
+            </span>
+            {isEdit && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', fontWeight: 700 }}
+              >
+                Edited
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            {!editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="text-[10px] px-2 py-1 rounded opacity-40 hover:opacity-80 transition-enterprise"
+                style={{ color: 'var(--accent-color)' }}
+              >
+                Edit
+              </button>
+            )}
+            <button
+              onClick={() => onDelete(note.note_text)}
+              className="text-lg leading-none opacity-30 hover:opacity-80 transition-enterprise"
+              style={{ color: '#ef4444' }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+
 export default function ActionCenter({
   lead,
   notes,
@@ -34,21 +222,51 @@ export default function ActionCenter({
   onDeleteNote,
   onBookCall,
   onDeleteEvent,
-  templates
+  templates,
 }: ActionCenterProps) {
-  const [newNote, setNewNote] = useState('');
-  const [callDate, setCallDate] = useState('');
+  const [newNote, setNewNote]       = useState('');
+  const [callDate, setCallDate]     = useState('');
   const [eventTitle, setEventTitle] = useState('');
-  const [eventNote, setEventNote] = useState('');
-  const [booking, setBooking] = useState(false);
+  const [eventNote, setEventNote]   = useState('');
+  const [booking, setBooking]       = useState(false);
   const [bookSuccess, setBookSuccess] = useState('');
-  const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
+
+  const appointments = parseAppointmentNotes(notes);
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return;
     const text = newNote.trim();
     setNewNote('');
     await onAddNote(text);
+  };
+
+  const handleEditNote = async (oldText: string, newText: string) => {
+    // Mark original as superseded (grey), append new version
+    const now = new Date().toISOString();
+    // Replace old note text with "[ORIGINAL]" prefix in local state
+    setNotes(prev =>
+      prev.map(n =>
+        n.note_text === oldText
+          ? { ...n, note_text: `[ORIGINAL] ${oldText}` }
+          : n
+      ).concat([{ lead_id: lead.id, note_text: `[EDITED] ${newText}`, created_at: now, source: 'manual' }])
+    );
+    // Persist old → "[ORIGINAL]" version
+    await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, noteText: `[ORIGINAL] ${oldText}`, createdAt: now }),
+    });
+    // Persist new edited note
+    await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, noteText: `[EDITED] ${newText}`, createdAt: now }),
+    });
+    // Delete original plain note
+    await fetch(`/api/notes?leadId=${encodeURIComponent(lead.id)}&noteText=${encodeURIComponent(oldText)}`, {
+      method: 'DELETE',
+    });
   };
 
   const handleBookCall = async () => {
@@ -68,42 +286,148 @@ export default function ActionCenter({
     setBooking(false);
   };
 
+  // Separate system appointment notes from display notes
+  const isAppointmentNote = (n: Note) => n.note_text.startsWith('Scheduled call for ') && n.source === 'system';
+  const isOriginalNote    = (n: Note) => n.note_text.startsWith('[ORIGINAL] ');
+  const displayNotes = notes.filter(n => !isAppointmentNote(n));
+
+  // Group: find [ORIGINAL] partners for [EDITED] notes
+  const getOriginalFor = (editedNote: Note): Note | undefined => {
+    const editedText = editedNote.note_text.replace(/^\[EDITED\] /, '');
+    return displayNotes.find(n => n.note_text === `[ORIGINAL] ${editedText}` || 
+      // also find any [ORIGINAL] that was created around the same time
+      (n.note_text.startsWith('[ORIGINAL] ') && Math.abs(new Date(n.created_at).getTime() - new Date(editedNote.created_at).getTime()) < 5000)
+    );
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      {/* ── NOTES ── */}
-      <div className="pane-card transition-enterprise">
-        <div className="text-[11px] font-bold text-amber-500 tracking-widest mb-3.5 uppercase">Notes</div>
-        <div className="flex flex-col gap-3 mb-4 max-h-[300px] overflow-y-auto pr-1">
-          {notes.length === 0 ? (
-            <div className="text-xs text-slate-400 italic opacity-40">No notes yet.</div>
-          ) : (
-            notes.map((note, i) => (
-              <div key={i} className="glass-surface rounded-xl p-3 flex justify-between items-start transition-enterprise hover:border-amber-500/30">
-                <div>
-                  <div className="text-sm text-amber-200/90 leading-relaxed mb-1.5">{note.note_text}</div>
-                  <div className="text-[10px] text-slate-400 opacity-50">
-                    {note.source === 'imported' ? 'Imported from Sheet' : fmtDate(note.created_at)}
+
+      {/* ── APPOINTMENTS (if any) ── */}
+      {appointments.length > 0 && (
+        <div className="pane-card transition-enterprise">
+          <div className="text-[11px] font-bold tracking-widest mb-3.5 uppercase" style={{ color: 'var(--info-color)' }}>
+            📅 Booked Appointments
+          </div>
+          <div className="flex flex-col gap-3">
+            {appointments.map((apt, i) => {
+              const aptDate = new Date(apt.dateStr);
+              const isValidDate = !isNaN(aptDate.getTime());
+              const formattedDate = isValidDate
+                ? aptDate.toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                : apt.dateStr;
+              const timeOnlyStr = isValidDate
+                ? aptDate.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+                : '';
+
+              return (
+                <div key={i} className="rounded-xl p-3" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  <div className="flex flex-col gap-1 mb-2">
+                    <div className="text-sm font-bold" style={{ color: 'var(--text-color)' }}>
+                      📆 {formattedDate}
+                    </div>
+                    {apt.title && (
+                      <div className="text-xs" style={{ color: 'var(--text-color)', opacity: 0.7 }}>{apt.title}</div>
+                    )}
+                    {apt.bookerEmail && (
+                      <div className="text-[10px]" style={{ color: 'var(--info-color)', opacity: 0.8 }}>
+                        Booked by: {apt.bookerEmail}
+                      </div>
+                    )}
+                  </div>
+                  {/* 3 confirmation message buttons */}
+                  <div className="text-[10px] font-bold uppercase mb-1.5" style={{ color: 'var(--text-color)', opacity: 0.4 }}>
+                    Confirmation Messages
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {APPOINTMENT_CONFIRMATIONS.map(conf => {
+                      const msg = conf.buildMessage(lead.full_name, timeOnlyStr || formattedDate, lead.nickname);
+                      const waLink = generateWhatsAppLink(lead.phone_number, msg);
+                      return (
+                        <a
+                          key={conf.id}
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="transition-enterprise text-[11px] font-bold px-2.5 py-1.5 rounded-lg"
+                          style={{ background: 'rgba(59,130,246,0.15)', color: 'var(--info-color)', border: '1px solid rgba(59,130,246,0.3)', textDecoration: 'none', cursor: 'pointer' }}
+                        >
+                          {conf.label} ↗
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
-                <button onClick={() => onDeleteNote(note.note_text)} className="text-red-400 hover:text-red-300 transition-colors text-lg leading-none opacity-60 hover:opacity-100">×</button>
-              </div>
-            ))
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── NOTES ── */}
+      <div className="pane-card transition-enterprise">
+        <div className="text-[11px] font-bold tracking-widest mb-3.5 uppercase" style={{ color: 'var(--accent-color)' }}>Notes</div>
+        <div className="flex flex-col gap-2.5 mb-4">
+          {displayNotes.length === 0 ? (
+            <div className="text-xs italic" style={{ color: 'var(--text-color)', opacity: 0.35 }}>No notes yet.</div>
+          ) : (
+            (() => {
+              // Track which [ORIGINAL] notes have been "claimed" by an [EDITED] note
+              const claimedOriginals = new Set<string>();
+
+              return displayNotes.map((note, i) => {
+                if (note.note_text.startsWith('[ORIGINAL] ')) {
+                  // Render [ORIGINAL] notes in a greyed-out, collapsible style
+                  if (claimedOriginals.has(note.note_text)) return null;
+                  const origText = note.note_text.replace(/^\[ORIGINAL\] /, '');
+                  return (
+                    <details key={i} className="rounded-xl overflow-hidden" style={{ border: '1px dashed var(--border-color)' }}>
+                      <summary
+                        className="text-[11px] px-3 py-2 cursor-pointer select-none"
+                        style={{ color: 'var(--text-color)', opacity: 0.4, listStyle: 'none' }}
+                      >
+                        📜 Edit history — click to expand
+                      </summary>
+                      <div className="px-3 pb-3 pt-1">
+                        <div className="text-xs leading-relaxed" style={{ color: 'var(--text-color)', opacity: 0.35, whiteSpace: 'pre-wrap', wordBreak: 'break-word', textDecoration: 'line-through' }}>
+                          {origText}
+                        </div>
+                        <div className="text-[10px] mt-1" style={{ color: 'var(--text-color)', opacity: 0.25 }}>
+                          Originally written {fmtDate(note.created_at)}
+                        </div>
+                      </div>
+                    </details>
+                  );
+                }
+
+                return (
+                  <NoteItem
+                    key={i}
+                    note={note}
+                    fmtDate={fmtDate}
+                    onDelete={onDeleteNote}
+                    onEdit={handleEditNote}
+                  />
+                );
+              });
+            })()
           )}
         </div>
-        <div className="flex gap-2">
-          <input 
-            type="text" 
-            value={newNote} 
-            onChange={e => setNewNote(e.target.value)}
-            placeholder="Add a note..." 
-            onKeyDown={e => e.key === 'Enter' && handleAddNote()}
+        {/* Auto-expanding note input */}
+        <div className="flex gap-2 items-end">
+          <AutoTextarea
+            value={newNote}
+            onChange={setNewNote}
+            placeholder="Add a note... (Enter to submit)"
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddNote(); } }}
             className="input-field flex-1"
+            style={{ fontSize: 13 }}
           />
-          <button 
-            onClick={handleAddNote} 
+          <button
+            onClick={handleAddNote}
             disabled={!newNote.trim()}
-            className="btn-primary transition-enterprise px-4 py-2 text-xs"
-            style={{ backgroundColor: 'var(--warning-color)', color: 'var(--bg-color)' }}
+            className="btn-primary transition-enterprise px-4 text-xs font-bold"
+            style={{ backgroundColor: 'var(--warning-color)', color: 'var(--bg-color)', height: 40, borderRadius: 10, flexShrink: 0 }}
           >
             Add
           </button>
@@ -112,49 +436,50 @@ export default function ActionCenter({
 
       {/* ── BOOKING ── */}
       <div className="pane-card transition-enterprise">
-        <div className="text-[11px] font-bold text-blue-500 tracking-widest mb-3.5 uppercase">Book Appointment</div>
+        <div className="text-[11px] font-bold tracking-widest mb-3.5 uppercase" style={{ color: 'var(--info-color)' }}>Book Appointment</div>
         {session?.accessToken ? (
           <div className="flex flex-col gap-3">
-            <input 
-              type="text" 
-              placeholder="Event Title" 
-              value={eventTitle} 
-              onChange={e => setEventTitle(e.target.value)} 
-              className="input-field w-full" 
-            />
-            <input 
-              type="text" 
-              placeholder="Appointment Note" 
-              value={eventNote} 
-              onChange={e => setEventNote(e.target.value)} 
-              className="input-field w-full" 
-            />
-            <input 
-              type="datetime-local" 
-              value={callDate} 
-              onChange={e => setCallDate(e.target.value)} 
+            <input
+              type="text"
+              placeholder="Event Title"
+              value={eventTitle}
+              onChange={e => setEventTitle(e.target.value)}
               className="input-field w-full"
-              style={{ colorScheme: 'dark' }} 
+            />
+            <input
+              type="text"
+              placeholder="Appointment Note"
+              value={eventNote}
+              onChange={e => setEventNote(e.target.value)}
+              className="input-field w-full"
+            />
+            <input
+              type="datetime-local"
+              value={callDate}
+              onChange={e => setCallDate(e.target.value)}
+              className="input-field w-full"
+              style={{ colorScheme: 'dark' }}
             />
             <div className="flex gap-2">
-              <button 
-                onClick={handleBookCall} 
-                disabled={booking || !callDate} 
+              <button
+                onClick={handleBookCall}
+                disabled={booking || !callDate}
                 className="btn-primary transition-enterprise flex-1 py-3 text-xs"
                 style={{ backgroundColor: 'var(--info-color)', color: 'var(--bg-color)' }}
               >
                 {booking ? 'Scheduling...' : bookSuccess ? `✓ ${bookSuccess}` : 'Add to Google Calendar'}
               </button>
-              <button 
-                onClick={onDeleteEvent} 
-                className="transition-enterprise px-3 py-3 rounded-xl border border-red-500/50 text-red-500 hover:bg-red-500/10 transition-colors text-lg"
+              <button
+                onClick={onDeleteEvent}
+                className="transition-enterprise px-3 py-3 rounded-xl text-lg"
+                style={{ border: '1px solid rgba(239,68,68,0.5)', color: '#ef4444' }}
               >
                 🗑
               </button>
             </div>
           </div>
         ) : (
-          <div className="text-center py-2 text-xs text-slate-400 opacity-60">
+          <div className="text-center py-2 text-xs" style={{ color: 'var(--text-color)', opacity: 0.5 }}>
             Sign in to Google on your Dashboard to enable 1-tap scheduling here.
           </div>
         )}
@@ -162,10 +487,12 @@ export default function ActionCenter({
 
       {/* ── TEMPLATES ── */}
       <div className="pane-card transition-enterprise">
-        <div className="text-[11px] font-bold text-emerald-500 tracking-widest mb-3.5 uppercase">Quick Templates</div>
+        <div className="text-[11px] font-bold tracking-widest mb-3.5 uppercase" style={{ color: '#10b981' }}>
+          Quick Templates
+        </div>
         <div className="flex flex-col gap-2">
           {templates.map(tpl => {
-            const personalised = personalizeMessage(tpl.text, lead.full_name, lead.metadata?.clinic_type);
+            const personalised = personalizeMessage(tpl.text, lead.full_name, lead.metadata?.clinic_type, lead.nickname);
             return (
               <MessageBubble
                 key={tpl.id}

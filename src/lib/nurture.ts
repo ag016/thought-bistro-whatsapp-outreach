@@ -87,17 +87,30 @@ export const NURTURE_SEQUENCE: NurtureStep[] = [
   }
 ];
 
-export function calculateIsDue(lead: { status: string; current_step: number; created_at: string }): boolean {
+/**
+ * A lead is "due" when enough time has passed since the PREVIOUS message was sent.
+ * For step 0 (first message), we count from created_at.
+ * For all subsequent steps, we count from last_sent_at.
+ * Each step's day_offset represents days BETWEEN messages, not since inception.
+ */
+export function calculateIsDue(lead: { status: string; current_step: number; created_at: string; last_sent_at: string | null }): boolean {
   if (lead.status !== 'active' || lead.current_step >= NURTURE_SEQUENCE.length) return false;
   const currentStep = NURTURE_SEQUENCE[lead.current_step];
-  const diffDays = Math.ceil((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24));
-  return diffDays >= currentStep.day_offset;
+  // For the first message (step 0) use created_at; for subsequent steps use last_sent_at
+  const baseline = lead.current_step === 0 || !lead.last_sent_at
+    ? new Date(lead.created_at)
+    : new Date(lead.last_sent_at);
+  const daysSinceBaseline = Math.ceil((Date.now() - baseline.getTime()) / (1000 * 60 * 60 * 24));
+  return daysSinceBaseline >= currentStep.day_offset;
 }
 
-export function getDaysUntilDue(lead: { current_step: number; created_at: string }): number {
+export function getDaysUntilDue(lead: { current_step: number; created_at: string; last_sent_at: string | null }): number {
   if (lead.current_step >= NURTURE_SEQUENCE.length) return 0;
   const step = NURTURE_SEQUENCE[lead.current_step];
-  const daysElapsed = Math.ceil((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24));
+  const baseline = lead.current_step === 0 || !lead.last_sent_at
+    ? new Date(lead.created_at)
+    : new Date(lead.last_sent_at);
+  const daysElapsed = Math.ceil((Date.now() - baseline.getTime()) / (1000 * 60 * 60 * 24));
   return Math.max(0, step.day_offset - daysElapsed);
 }
 
@@ -125,19 +138,70 @@ export function extractFirstName(fullName: string): string {
   return first.replace(/[^a-zA-Z]/g, '');
 }
 
-export function personalizeMessage(text: string, fullName: string, clinicType?: string): string {
-  const firstName = extractFirstName(fullName);
-  const nameToUse = firstName ? `Dr. ${firstName}` : 'Doctor';
+/**
+ * Personalise a message template.
+ * Uses `nickname` first (as-is, no prefix added). Falls back to extracting
+ * first name from fullName and prepending "Dr.".
+ * This prevents the "Dr. Dr. Surname" issue when the lead fills "Dr. XYZ".
+ */
+export function personalizeMessage(text: string, fullName: string, clinicType?: string, nickname?: string): string {
+  let nameToUse: string;
+  if (nickname && nickname.trim()) {
+    // Nickname is used verbatim — user controls exactly what appears
+    nameToUse = nickname.trim();
+  } else {
+    const firstName = extractFirstName(fullName);
+    nameToUse = firstName ? `Dr. ${firstName}` : 'Doctor';
+  }
   
   return text
-    // Replace "Hey Doctor," with "Hey Dr. Name,"
+    // Replace "Hey Doctor," with personalised greeting
     .replace(/Hey Doctor,/g, `Hey ${nameToUse},`)
-    // Replace generic "Doctor," with "Dr. Name,"
+    // Replace generic "Doctor," salutation
     .replace(/Doctor,/g, `${nameToUse},`)
     // Specific template replacements
     .replace(/\[NAME\]/g, nameToUse)
     .replace(/\[CLINIC_TYPE\]/g, clinicType ? clinicType.toLowerCase() : 'clinic');
 }
+
+// ── Appointment Confirmation Messages ─────────────────────────────────────────
+
+export interface AppointmentConfirmation {
+  id: string;
+  label: string;
+  offsetLabel: string; // Human label for when to send
+  buildMessage: (leadName: string, appointmentTime: string, nickname?: string) => string;
+}
+
+export const APPOINTMENT_CONFIRMATIONS: AppointmentConfirmation[] = [
+  {
+    id: 'day_before',
+    label: 'Day Before',
+    offsetLabel: 'Send the day before appointment',
+    buildMessage: (leadName, appointmentTime, nickname) => {
+      const name = nickname?.trim() || `Dr. ${extractFirstName(leadName)}` || 'Doctor';
+      return `Hi ${name}! 👋\n\nJust a quick reminder that we have our call scheduled for tomorrow at ${appointmentTime}.\n\nLooking forward to speaking with you and understanding how we can help grow your clinic. If anything comes up, just give me a heads-up!\n\nSee you tomorrow! 😊\n\n— Team Bistro`;
+    }
+  },
+  {
+    id: 'day_of',
+    label: 'Day Of',
+    offsetLabel: 'Send on the day of appointment',
+    buildMessage: (leadName, appointmentTime, nickname) => {
+      const name = nickname?.trim() || `Dr. ${extractFirstName(leadName)}` || 'Doctor';
+      return `Good morning ${name}! ☀️\n\nExcited for our call today at ${appointmentTime}!\n\nHere's the quick agenda:\n✅ Understand your current patient acquisition setup\n✅ Walk you through what we build\n✅ See if our system makes sense for your clinic\n\nTalk soon! 🚀\n\n— Team Bistro`;
+    }
+  },
+  {
+    id: 'one_hour_before',
+    label: '1 Hour Before',
+    offsetLabel: 'Send 1 hour before appointment',
+    buildMessage: (leadName, appointmentTime, nickname) => {
+      const name = nickname?.trim() || `Dr. ${extractFirstName(leadName)}` || 'Doctor';
+      return `Hi ${name}! ⏰\n\nJust a heads-up — our call is in about an hour, at ${appointmentTime}.\n\nNo prep needed on your end, just bring your questions!\n\nSee you soon! 😊\n\n— Team Bistro`;
+    }
+  }
+];
 
 export function autoSelectVariant(stepNumber: number, leadQualityDesc: string, variants: MessageVariant[] | undefined): MessageVariant | undefined {
   if (!variants || variants.length === 0) return undefined;

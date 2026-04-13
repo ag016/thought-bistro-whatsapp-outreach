@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink } from '@/lib/nurture';
+import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink, APPOINTMENT_CONFIRMATIONS } from '@/lib/nurture';
 import MessageBubble from '@/components/Leads/MessageBubble';
 import ActionCenter from '@/components/Leads/ActionCenter';
 import { Skeleton } from '@/components/UI/Skeleton';
@@ -23,6 +23,7 @@ interface Lead {
   last_sent_at: string | null;
   created_at: string;
   internal_tag?: string;
+  nickname?: string;
   metadata: {
     clinic_type: string;
     treatment_price: string;
@@ -169,22 +170,55 @@ function InfoField({ label, value, fullWidth = false }: { label: string; value: 
   );
 }
 
+// ── Parse appointment notes ────────────────────────────────────────────────────
+
+interface ParsedAppointment {
+  dateStr: string;
+  title: string;
+  bookerEmail: string;
+  formattedDate: string;
+  timeOnlyStr: string;
+}
+
+function parseAppointmentsFromNotes(notes: Note[]): ParsedAppointment[] {
+  return notes
+    .filter(n => n.note_text.startsWith('Scheduled call for ') && n.source === 'system')
+    .map(n => {
+      const match = n.note_text.match(/^Scheduled call for (.+?)(?:\s+\(([^)]+)\))?(?:\s+\[by ([^\]]+)\])?$/);
+      const dateStr = match?.[1] || n.note_text.replace('Scheduled call for ', '');
+      const title = match?.[2] || '';
+      const bookerEmail = match?.[3] || '';
+      const aptDate = new Date(dateStr);
+      const isValid = !isNaN(aptDate.getTime());
+      return {
+        dateStr,
+        title,
+        bookerEmail,
+        formattedDate: isValid
+          ? aptDate.toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+          : dateStr,
+        timeOnlyStr: isValid
+          ? aptDate.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+          : '',
+      };
+    });
+}
+
 export default function LeadDetail({ params }: { params: { id: string } }) {
   const router  = useRouter();
+  const searchParams = useSearchParams();
+  // The tab to go back to (e.g. 'due', 'paused', 'active', 'all')
+  const fromTab = searchParams.get('tab') || 'all';
+
   const [lead,         setLead]         = useState<Lead | null>(null);
   const [nurtureRaw,   setNurtureRaw]   = useState<Record<string, string>>({});
   const [notes,        setNotes]        = useState<Note[]>([]);
   const [loading,      setLoading]      = useState(true);
-  const [awaitSentMsg, setAwaitSentMsg] = useState<number | null>(null);
   const [newNote,      setNewNote]      = useState('');
   const [addingNote,   setAddingNote]   = useState(false);
-  const [callDate,     setCallDate]     = useState('');
-  const [eventTitle,     setEventTitle]     = useState('');
-  const [eventNote,      setEventNote]      = useState('');
-  const [booking,        setBooking]        = useState(false);
-  const [bookSuccess,    setBookSuccess]    = useState('');
-  const [leftCollapsed,  setLeftCollapsed]  = useState(false);
-  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameInput,   setNicknameInput]   = useState('');
+  const [savingNickname,  setSavingNickname]  = useState(false);
 
   const { data: session } = useSession();
 
@@ -214,13 +248,16 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
         let currentStep = parseInt(nEntry.current_step ?? '0');
         if (isNaN(currentStep)) currentStep = 0;
         
-        setLead({
+        const resolvedLead: Lead = {
           ...found,
           id: found.sheet_id,
           current_step: currentStep,
           status: nEntry.status || 'active',
-          last_sent_at: nEntry.last_sent_at || null
-        });
+          last_sent_at: nEntry.last_sent_at || null,
+          nickname: nEntry.nickname || found.nickname || '',
+        };
+        setLead(resolvedLead);
+        setNicknameInput(resolvedLead.nickname || '');
         setNurtureRaw(nEntry);
       }
       setNotes(notesData.notes ?? []);
@@ -229,13 +266,14 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
 
   useEffect(() => { loadLead(); }, [loadLead]);
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
   const handleMarkMsgSent = async (stepNumber?: number) => {
     if (!lead || stepNumber === undefined) return;
     const now = new Date().toISOString();
     const newCurrentStep = Math.max(lead.current_step, stepNumber);
     setLead(prev => prev ? { ...prev, current_step: newCurrentStep, last_sent_at: now } : prev);
     setNurtureRaw(prev => ({ ...prev, current_step: String(newCurrentStep), last_sent_at: now, [`msg${stepNumber}_sent`]: now }));
-    setAwaitSentMsg(null);
     await fetch('/api/nurture', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -265,14 +303,30 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     });
   };
 
+  // ── FIXED: was sending 'internalTag', API expects 'tag' (now both accepted) ─
   const handleUpdateTag = async (newTag: string) => {
     if (!lead) return;
     setLead(prev => prev ? { ...prev, internal_tag: newTag } : prev);
     await fetch('/api/tags', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leadId: lead.id, internalTag: newTag })
+      body: JSON.stringify({ leadId: lead.id, tag: newTag })
     });
+  };
+
+  const handleSaveNickname = async () => {
+    if (!lead) return;
+    setSavingNickname(true);
+    const newNickname = nicknameInput.trim();
+    setLead(prev => prev ? { ...prev, nickname: newNickname } : prev);
+    setNurtureRaw(prev => ({ ...prev, nickname: newNickname }));
+    setEditingNickname(false);
+    await fetch('/api/nurture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, nickname: newNickname })
+    });
+    setSavingNickname(false);
   };
 
   const handleAddNote = async () => {
@@ -288,43 +342,6 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
       body: JSON.stringify({ leadId: lead.id, noteText: text, createdAt: now })
     });
     setAddingNote(false);
-  };
-
-  const handleBookCall = async () => {
-    if (!callDate || !lead) return;
-    setBooking(true);
-    setBookSuccess('');
-    try {
-      const res = await fetch('/api/calendar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          leadName: lead.full_name, 
-          phone: lead.phone_number, 
-          dateStr: callDate,
-          summary: eventTitle || undefined,
-          description: eventNote || undefined
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      const noteText = `Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}`;
-      const now = new Date().toISOString();
-      setNotes(prev => [...prev, { lead_id: lead.id, note_text: noteText, created_at: now, source: 'system' }]);
-      fetch('/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: lead.id, noteText, createdAt: now })
-      });
-      setBookSuccess('Scheduled!');
-      setTimeout(() => setBookSuccess(''), 3000);
-      setCallDate('');
-      setEventTitle('');
-      setEventNote('');
-    } catch (e: any) {
-      alert(e.message || 'Failed to schedule');
-    }
-    setBooking(false);
   };
 
   const handleDeleteNote = async (noteText: string) => {
@@ -353,6 +370,38 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
     } catch (e: any) {
       alert(e.message);
     }
+  };
+
+  // ── Back navigation — restores the tab the user was on ────────────────────
+  const handleBack = () => {
+    router.push(fromTab !== 'all' ? `/?tab=${fromTab}` : '/');
+  };
+
+  // ── Book call — include booker email from session ─────────────────────────
+  const handleBookCall = async ({ callDate, eventTitle, eventNote }: { callDate: string; eventTitle: string; eventNote: string }) => {
+    if (!lead) return;
+    const res = await fetch('/api/calendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        leadName: lead.full_name,
+        phone: lead.phone_number,
+        dateStr: callDate,
+        summary: eventTitle || undefined,
+        description: eventNote || undefined
+      })
+    });
+    if (!res.ok) throw new Error('Failed to schedule');
+    // Include booker email in the note so it's visible in Lead Info
+    const bookerEmail = session?.user?.email || '';
+    const noteText = `Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}${bookerEmail ? ` [by ${bookerEmail}]` : ''}`;
+    const now = new Date().toISOString();
+    setNotes(prev => [...prev, { lead_id: lead.id, note_text: noteText, created_at: now, source: 'system' }]);
+    fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadId: lead.id, noteText, createdAt: now })
+    });
   };
 
   if (loading) {
@@ -386,7 +435,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
       <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--accent-color)', gap: 12 }}>
         <div style={{ fontSize: 40 }}>404</div>
         <div>Lead not found</div>
-        <button onClick={() => router.push('/')} className="btn-primary transition-enterprise" style={{ marginTop: 8, padding: '10px 20px' }}>Back to Dashboard</button>
+        <button onClick={handleBack} className="btn-primary transition-enterprise" style={{ marginTop: 8, padding: '10px 20px' }}>Back to Dashboard</button>
       </div>
     );
   }
@@ -394,15 +443,22 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
   const isCompleted = lead.current_step >= NURTURE_SEQUENCE.length;
   const daysUntil   = getDaysUntilDue(lead);
   const m           = lead.metadata;
+  const appointments = parseAppointmentsFromNotes(notes);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-color)', paddingBottom: 60 }}>
       {/* --- Header --- */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--bg-color)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border-color)', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button onClick={() => router.push('/')} className="transition-enterprise" style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700, transition: 'all 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>&lt;</button>
+        <button
+          onClick={handleBack}
+          className="transition-enterprise"
+          style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 10, color: 'var(--accent-color)', padding: '8px 14px', cursor: 'pointer', fontSize: 18, fontWeight: 700, transition: 'all 0.2s ease' }}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+        >&lt;</button>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-color)', opacity: 0.5, marginBottom: 4 }}>
-            <span style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>Dashboard</span>
+            <span style={{ cursor: 'pointer' }} onClick={handleBack}>Dashboard</span>
             <span>›</span>
             <span style={{ color: 'var(--accent-color)' }}>{lead.full_name}</span>
           </div>
@@ -420,87 +476,184 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
         <div className="detail-grid">
 
           {/* --- LEFT PANEL: Lead Info & Identity --- */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="pane-card">
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 14 }}>NURTURE PROGRESS</div>
-                <div style={{ display: 'flex', gap: 3, marginBottom: 10 }}>
-                  {NURTURE_SEQUENCE.map((_, i) => (
-                    <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < lead.current_step ? 'var(--accent-color)' : i === lead.current_step && !isCompleted ? 'rgba(var(--accent-color), 0.35)' : 'var(--border-color)' }} />
-                  ))}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: 'var(--text-color)', fontWeight: 700 }}>Step {Math.min(lead.current_step + 1, 10)} / 10</span>
-                  {isCompleted
-                    ? <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Sequence complete</span>
-                    : daysUntil <= 0
-                      ? <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Due now</span>
-                      : <span style={{ color: 'var(--text-color)', opacity: 0.6 }}>Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
-                </div>
-                {lead.last_sent_at && (
-                  <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.4, marginTop: 6 }}>Last sent: {fmt(lead.last_sent_at)}</div>
-                )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Nurture Progress */}
+            <div className="pane-card">
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 14 }}>NURTURE PROGRESS</div>
+              <div style={{ display: 'flex', gap: 3, marginBottom: 10 }}>
+                {NURTURE_SEQUENCE.map((_, i) => (
+                  <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < lead.current_step ? 'var(--accent-color)' : i === lead.current_step && !isCompleted ? 'rgba(var(--accent-color), 0.35)' : 'var(--border-color)' }} />
+                ))}
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: 'var(--text-color)', fontWeight: 700 }}>Step {Math.min(lead.current_step + 1, 10)} / 10</span>
+                {isCompleted
+                  ? <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Sequence complete</span>
+                  : daysUntil <= 0
+                    ? <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Due now</span>
+                    : <span style={{ color: 'var(--text-color)', opacity: 0.6 }}>Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
+              </div>
+              {lead.last_sent_at && (
+                <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.4, marginTop: 6 }}>Last sent: {fmt(lead.last_sent_at)}</div>
+              )}
+            </div>
 
-              <div className="pane-card">
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 14 }}>LEAD INFO</div>
-                
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 6, fontWeight: 600 }}>INTERNAL TAG</div>
-                  <select 
-                    value={lead.internal_tag || 'NEW'} 
-                    onChange={e => handleUpdateTag(e.target.value)}
-                    className="input-field"
-                    style={{ width: '100%', cursor: 'pointer', appearance: 'none' }}
+            {/* Lead Info */}
+            <div className="pane-card">
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 14 }}>LEAD INFO</div>
+
+              {/* Nickname field */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 6, fontWeight: 600 }}>ADDRESSED NAME (NICKNAME)</div>
+                {editingNickname ? (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      type="text"
+                      value={nicknameInput}
+                      onChange={e => setNicknameInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSaveNickname(); if (e.key === 'Escape') { setEditingNickname(false); setNicknameInput(lead.nickname || ''); } }}
+                      className="input-field"
+                      style={{ flex: 1, fontSize: 13 }}
+                      placeholder="e.g. Dr. Rajesh or just Rajesh"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleSaveNickname}
+                      disabled={savingNickname}
+                      style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--accent-color)', color: 'var(--bg-color)', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                    onClick={() => setEditingNickname(true)}
                   >
-                    <option value="NEW">NEW</option>
-                    <option value="HOT">HOT</option>
-                    <option value="WARM">WARM</option>
-                    <option value="COLD">COLD</option>
-                    <option value="FOLLOW_UP">FOLLOW UP</option>
-                    <option value="CONVERTED">CONVERTED</option>
-                  </select>
-                </div>
-
-                <div className="meta-grid">
-                  {m.platform        && <InfoField label="Platform"       value={m.platform} />}
-                  {m.campaign_name   && <InfoField label="Campaign"       value={m.campaign_name} />}
-                  {m.ad_name         && <InfoField label="Ad"             value={m.ad_name} />}
-                  {m.clinic_type     && <InfoField label="Clinic Type"    value={m.clinic_type} />}
-                  {m.treatment_price && <InfoField label="Avg Price"      value={`Rs. ${m.treatment_price}`} />}
-                  {m.lead_status     && <InfoField label="Status"         value={m.lead_status} />}
-                </div>
-
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 6, fontWeight: 600 }}>SHEET STATUS (QUALIFICATION)</div>
-                  <select 
-                    value={m.lead_status || 'CREATED'} 
-                    onChange={e => handleUpdateStatus(e.target.value)}
-                    className="input-field"
-                    style={{ width: '100%', cursor: 'pointer', appearance: 'none' }}
-                  >
-                    <option value="CREATED">CREATED</option>
-                    <option value="Qualified">Qualified</option>
-                    <option value="Not Qualified">Not Qualified</option>
-                  </select>
-                </div>
-
-                <InfoField label="Submitted" value={fmt(m.india_time || lead.created_at)} fullWidth />
-
-                {m.lead_quality_desc && (
-                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.7, marginBottom: 6, fontWeight: 700 }}>CURRENT LEAD SITUATION</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.9, lineHeight: 1.6 }}>{m.lead_quality_desc}</div>
+                    <div style={{ fontSize: 13, color: lead.nickname ? 'var(--text-color)' : 'var(--text-color)', opacity: lead.nickname ? 0.9 : 0.4, flex: 1 }}>
+                      {lead.nickname || 'Click to set nickname…'}
+                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--accent-color)', opacity: 0.7 }}>✏️</span>
                   </div>
                 )}
+                <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.35, marginTop: 4 }}>
+                  Used in all outgoing messages (avoids "Dr. Dr." issue)
+                </div>
               </div>
+
+              {/* Internal Tag */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 6, fontWeight: 600 }}>INTERNAL TAG</div>
+                <select
+                  value={lead.internal_tag || 'NEW'}
+                  onChange={e => handleUpdateTag(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%', cursor: 'pointer', appearance: 'none' }}
+                >
+                  <option value="NEW">NEW</option>
+                  <option value="HOT">HOT</option>
+                  <option value="WARM">WARM</option>
+                  <option value="COLD">COLD</option>
+                  <option value="FOLLOW_UP">FOLLOW UP</option>
+                  <option value="CONVERTED">CONVERTED</option>
+                </select>
+              </div>
+
+              <div className="meta-grid">
+                {m.platform        && <InfoField label="Platform"       value={m.platform} />}
+                {m.campaign_name   && <InfoField label="Campaign"       value={m.campaign_name} />}
+                {m.ad_name         && <InfoField label="Ad"             value={m.ad_name} />}
+                {m.clinic_type     && <InfoField label="Clinic Type"    value={m.clinic_type} />}
+                {m.treatment_price && <InfoField label="Avg Price"      value={`Rs. ${m.treatment_price}`} />}
+                {m.lead_status     && <InfoField label="Status"         value={m.lead_status} />}
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.5, marginBottom: 6, fontWeight: 600 }}>SHEET STATUS (QUALIFICATION)</div>
+                <select
+                  value={m.lead_status || 'CREATED'}
+                  onChange={e => handleUpdateStatus(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%', cursor: 'pointer', appearance: 'none' }}
+                >
+                  <option value="CREATED">CREATED</option>
+                  <option value="Qualified">Qualified</option>
+                  <option value="Not Qualified">Not Qualified</option>
+                </select>
+              </div>
+
+              <InfoField label="Submitted" value={fmt(m.india_time || lead.created_at)} fullWidth />
+
+              {m.lead_quality_desc && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.7, marginBottom: 6, fontWeight: 700 }}>CURRENT LEAD SITUATION</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.9, lineHeight: 1.6 }}>{m.lead_quality_desc}</div>
+                </div>
+              )}
             </div>
+
+            {/* Booked Appointments — shown in Lead Info panel */}
+            {appointments.length > 0 && (
+              <div className="pane-card">
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-color)', letterSpacing: '0.08em', marginBottom: 14 }}>📅 BOOKED APPOINTMENTS</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {appointments.map((apt, i) => (
+                    <div key={i} style={{ borderRadius: 12, padding: '12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-color)', marginBottom: 4 }}>
+                        📆 {apt.formattedDate}
+                      </div>
+                      {apt.title && (
+                        <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.7, marginBottom: 4 }}>{apt.title}</div>
+                      )}
+                      {apt.bookerEmail && (
+                        <div style={{ fontSize: 11, color: 'var(--info-color)', opacity: 0.8, marginBottom: 8 }}>
+                          Booked by: {apt.bookerEmail}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-color)', opacity: 0.4, marginBottom: 6 }}>
+                        Send Confirmation
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {APPOINTMENT_CONFIRMATIONS.map(conf => {
+                          const msg = conf.buildMessage(lead.full_name, apt.timeOnlyStr || apt.formattedDate, lead.nickname);
+                          const waLink = generateWhatsAppLink(lead.phone_number, msg);
+                          return (
+                            <a
+                              key={conf.id}
+                              href={waLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '6px 10px',
+                                borderRadius: 8,
+                                background: 'rgba(59,130,246,0.15)',
+                                color: 'var(--info-color)',
+                                border: '1px solid rgba(59,130,246,0.3)',
+                                textDecoration: 'none',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {conf.label} ↗
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* --- CENTER PANEL: Message Timeline --- */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="pane-card">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>MESSAGE TIMELINE</div>
               <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6, marginBottom: 20 }}>
-                Review messages before sending. Click any bubble to edit and confirm.
+                Click a message to expand. Open WhatsApp first, then mark as sent.
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -508,11 +661,12 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                   const sentTimestamp = nurtureRaw[`msg${step.step_number}_sent`];
                   const hasBeenSent = !!sentTimestamp;
                   const isCurrentTarget = !hasBeenSent && i === lead.current_step && !isCompleted;
-                  
+
                   const selectedVariant = autoSelectVariant(step.step_number, m.lead_quality_desc, step.variants);
                   const baseText = selectedVariant ? selectedVariant.text : step.message_text;
-                  const finalText = personalizeMessage(baseText, lead.full_name, m.clinic_type);
-                  
+                  // Pass nickname to personalize — fixes "Dr. Dr." issue
+                  const finalText = personalizeMessage(baseText, lead.full_name, m.clinic_type, lead.nickname);
+
                   return (
                     <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
@@ -523,7 +677,7 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                       </div>
 
                       <div style={{ flex: 1, paddingTop: 8 }}>
-                        <MessageBubble 
+                        <MessageBubble
                           stepNumber={step.step_number}
                           messageText={finalText}
                           hasBeenSent={hasBeenSent}
@@ -538,8 +692,8 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
                     </div>
                   );
                 })}
-                
-                {/* Simulated System Events for Activity Log */}
+
+                {/* Activity Log entries */}
                 <div className="system-event">
                   <span>Lead created on {fmt(lead.created_at)}</span>
                 </div>
@@ -558,44 +712,27 @@ export default function LeadDetail({ params }: { params: { id: string } }) {
           </div>
 
           {/* --- RIGHT PANEL: Action Center --- */}
-            <ActionCenter 
-              lead={lead}
-              notes={notes}
-              setNotes={setNotes}
-              session={session}
-              fmtDate={fmt}
-              onAddNote={async (text) => {
-                if (!lead) return;
-                const now = new Date().toISOString();
-                setNotes(prev => [...prev, { lead_id: lead.id, note_text: text, created_at: now, source: 'manual' }]);
-                await fetch('/api/notes', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ leadId: lead.id, noteText: text, createdAt: now })
-                });
-              }}
-              onDeleteNote={handleDeleteNote}
-              onBookCall={async ({ callDate, eventTitle, eventNote }) => {
-                if (!lead) return;
-                const res = await fetch('/api/calendar', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ leadName: lead.full_name, phone: lead.phone_number, dateStr: callDate, summary: eventTitle || undefined, description: eventNote || undefined })
-                });
-                if (!res.ok) throw new Error('Failed to schedule');
-                const noteText = `Scheduled call for ${new Date(callDate).toLocaleString()} ${eventTitle ? `(${eventTitle})` : ''}`;
-                const now = new Date().toISOString();
-                setNotes(prev => [...prev, { lead_id: lead.id, note_text: noteText, created_at: now, source: 'system' }]);
-                fetch('/api/notes', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ leadId: lead.id, noteText, createdAt: now })
-                });
-              }}
-              onDeleteEvent={handleDeleteEvent}
-              templates={MESSAGE_TEMPLATES}
-            />
-
+          <ActionCenter
+            lead={lead}
+            notes={notes}
+            setNotes={setNotes}
+            session={session}
+            fmtDate={fmt}
+            onAddNote={async (text) => {
+              if (!lead) return;
+              const now = new Date().toISOString();
+              setNotes(prev => [...prev, { lead_id: lead.id, note_text: text, created_at: now, source: 'manual' }]);
+              await fetch('/api/notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ leadId: lead.id, noteText: text, createdAt: now })
+              });
+            }}
+            onDeleteNote={handleDeleteNote}
+            onBookCall={handleBookCall}
+            onDeleteEvent={handleDeleteEvent}
+            templates={MESSAGE_TEMPLATES}
+          />
         </div>
       </div>
     </div>

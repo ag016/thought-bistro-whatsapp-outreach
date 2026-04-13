@@ -8,6 +8,7 @@ interface LeadListProps {
   leads: Lead[];
   onPause: (id: string) => void;
   onUpdateTag: (id: string, tag: string) => Promise<void>;
+  onNavigate?: (id: string) => void;
 }
 
 function formatDate(str: string | null) {
@@ -21,11 +22,16 @@ function formatDate(str: string | null) {
   }
 }
 
-export default function LeadList({ leads, onPause, onUpdateTag }: LeadListProps) {
+export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: LeadListProps) {
   const router = useRouter();
   const [tagFilter, setTagFilter] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   
+  const handleRowClick = (id: string) => {
+    if (onNavigate) onNavigate(id);
+    else router.push(`/leads/${id}`);
+  };
+
   const uniqueTags = Array.from(new Set(leads.map(l => l.internal_tag).filter(Boolean))).sort();
   const tagOptions = ['NEW', 'HOT', 'WARM', 'COLD', 'FOLLOW_UP', 'CONVERTED'];
   
@@ -108,7 +114,7 @@ export default function LeadList({ leads, onPause, onUpdateTag }: LeadListProps)
               <tr 
                 key={lead.id} 
                 className="transition-enterprise"
-                onClick={() => router.push(`/leads/${lead.id}`)} 
+                onClick={() => handleRowClick(lead.id)} 
                 style={{ 
                   cursor: 'pointer', 
                   borderBottom: '1px solid var(--border-color)',
