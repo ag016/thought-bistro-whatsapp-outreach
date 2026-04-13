@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink, APPOINTMENT_CONFIRMATIONS, autoExtractNickname } from '@/lib/nurture';
+import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink, APPOINTMENT_CONFIRMATIONS, autoExtractNickname, isAppointmentNote, parseAppointmentInfo } from '@/lib/nurture';
 import MessageBubble from '@/components/Leads/MessageBubble';
 import ActionCenter from '@/components/Leads/ActionCenter';
 import { Skeleton } from '@/components/UI/Skeleton';
@@ -45,6 +45,7 @@ interface Note {
 }
 
 const AUTH_KEY = 'tb_auth_session';
+const LOCAL_LEADS_KEY = 'tb_manual_leads';
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -170,39 +171,6 @@ function InfoField({ label, value, fullWidth = false }: { label: string; value: 
   );
 }
 
-// ── Parse appointment notes ────────────────────────────────────────────────────
-
-interface ParsedAppointment {
-  dateStr: string;
-  title: string;
-  bookerEmail: string;
-  formattedDate: string;
-  timeOnlyStr: string;
-}
-
-function parseAppointmentsFromNotes(notes: Note[]): ParsedAppointment[] {
-  return notes
-    .filter(n => n.note_text.startsWith('Scheduled call for ') && n.source === 'system')
-    .map(n => {
-      const match = n.note_text.match(/^Scheduled call for (.+?)(?:\s+\(([^)]+)\))?(?:\s+\[by ([^\]]+)\])?$/);
-      const dateStr = match?.[1] || n.note_text.replace('Scheduled call for ', '');
-      const title = match?.[2] || '';
-      const bookerEmail = match?.[3] || '';
-      const aptDate = new Date(dateStr);
-      const isValid = !isNaN(aptDate.getTime());
-      return {
-        dateStr,
-        title,
-        bookerEmail,
-        formattedDate: isValid
-          ? aptDate.toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-          : dateStr,
-        timeOnlyStr: isValid
-          ? aptDate.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-          : '',
-      };
-    });
-}
 
 function LeadDetailInner({ params }: { params: { id: string } }) {
   const router  = useRouter();
@@ -255,7 +223,21 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
         ? await notesRes.json().catch(() => ({ notes: [] }))
         : { notes: [] };
 
-      const found = (leadsData.leads ?? []).find(l => l.sheet_id === paramId || l.id === paramId);
+      let found = (leadsData.leads ?? []).find(l => l.sheet_id === paramId || l.id === paramId);
+      
+      // Local fallback for manual leads
+      if (!found) {
+        try {
+          const stored = localStorage.getItem(LOCAL_LEADS_KEY);
+          if (stored) {
+            const localLeads = JSON.parse(stored);
+            found = localLeads.find((l: any) => l.sheet_id === paramId || l.id === paramId);
+          }
+        } catch (e) {
+          console.error('Failed to load local lead', e);
+        }
+      }
+
       if (found) {
         const nMap = nurtureData.nurture ?? {};
         const nEntry = nMap[found.sheet_id] ?? {};
@@ -430,7 +412,26 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
   const isCompleted = lead.current_step >= NURTURE_SEQUENCE.length;
   const daysUntil = getDaysUntilDue(lead);
   const m = lead.metadata;
-  const appointments = parseAppointmentsFromNotes(notes);
+  // ── Appointment Extraction ──
+  const appointments = notes
+    .filter(n => isAppointmentNote(n.note_text) && n.source === 'system')
+    .map(n => {
+      const info = parseAppointmentInfo(n.note_text)!;
+      const aptDate = new Date(info.dateStr);
+      const isValid = !isNaN(aptDate.getTime());
+      return {
+        ...info,
+        formattedDate: isValid
+          ? aptDate.toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+          : info.dateStr,
+        timeOnlyStr: isValid
+          ? aptDate.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+          : '',
+      };
+    });
+
+  const displayNotes = notes.filter(n => !isAppointmentNote(n.note_text));
+
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-color)', paddingBottom: 60 }}>
@@ -603,63 +604,73 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Booked Appointments — shown in Lead Info panel */}
+          </div>
+
+          {/* --- CENTER PANEL: Message Timeline --- */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'timeline' ? '' : 'hidden-mobile'}>
+            
+            {/* Booked Appointments Banner — Prominent top section */}
             {appointments.length > 0 && (
-              <div className="pane-card">
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-color)', letterSpacing: '0.08em', marginBottom: 14 }}>📅 BOOKED APPOINTMENTS</div>
+              <div className="pane-card" style={{ border: '2px solid var(--info-color)', background: 'linear-gradient(to bottom, rgba(59,130,246,0.12), transparent)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-color)', letterSpacing: '0.08em', marginBottom: 14 }}>📅 UPCOMING CALLS</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {appointments.map((apt, i) => (
-                    <div key={i} style={{ borderRadius: 12, padding: '12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-color)', marginBottom: 4 }}>
-                        📆 {apt.formattedDate}
+                    <div key={i} style={{ borderRadius: 16, padding: '16px', background: 'var(--surface-color)', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-color)' }}>
+                            {apt.formattedDate}
+                          </div>
+                          {apt.title && (
+                            <div style={{ fontSize: 13, color: 'var(--info-color)', fontWeight: 600 }}>{apt.title}</div>
+                          )}
+                        </div>
+                        <div style={{ background: 'var(--info-color)', color: 'var(--bg-color)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 800 }}>CONFIRMED</div>
                       </div>
-                      {apt.title && (
-                        <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.7, marginBottom: 4 }}>{apt.title}</div>
-                      )}
+                      
                       {apt.bookerEmail && (
-                        <div style={{ fontSize: 11, color: 'var(--info-color)', opacity: 0.8, marginBottom: 8 }}>
-                          Booked by: {apt.bookerEmail}
+                        <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.5, marginBottom: 12 }}>
+                          Host: <span style={{ color: 'var(--text-color)', opacity: 0.9 }}>{apt.bookerEmail}</span>
                         </div>
                       )}
-                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-color)', opacity: 0.4, marginBottom: 6 }}>
-                        Send Confirmation
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {APPOINTMENT_CONFIRMATIONS.map(conf => {
-                          const msg = conf.buildMessage(lead.full_name, apt.timeOnlyStr || apt.formattedDate, lead.nickname);
-                          const waLink = generateWhatsAppLink(lead.phone_number, msg);
-                          return (
-                            <a
-                              key={conf.id}
-                              href={waLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: '6px 10px',
-                                borderRadius: 8,
-                                background: 'rgba(59,130,246,0.15)',
-                                color: 'var(--info-color)',
-                                border: '1px solid rgba(59,130,246,0.3)',
-                                textDecoration: 'none',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {conf.label} ↗
-                            </a>
-                          );
-                        })}
+
+                      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-color)', opacity: 0.4, marginBottom: 8 }}>
+                          Send One-Tap Reminders
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {APPOINTMENT_CONFIRMATIONS.map(conf => {
+                            const msg = conf.buildMessage(lead.full_name, apt.timeOnlyStr || apt.formattedDate, lead.nickname);
+                            const waLink = generateWhatsAppLink(lead.phone_number, msg);
+                            return (
+                              <a
+                                key={conf.id}
+                                href={waLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="transition-enterprise"
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  padding: '8px 14px',
+                                  borderRadius: 10,
+                                  background: 'var(--info-color)',
+                                  color: 'var(--bg-color)',
+                                  textDecoration: 'none',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {conf.label} ↗
+                              </a>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-
-          {/* --- CENTER PANEL: Message Timeline --- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'timeline' ? '' : 'hidden-mobile'}>
             <div className="pane-card">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>MESSAGE TIMELINE</div>
               <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6, marginBottom: 20 }}>
@@ -723,7 +734,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
           <div className={mobileTab === 'actions' ? '' : 'hidden-mobile'}>
             <ActionCenter
               lead={lead}
-              notes={notes}
+              notes={displayNotes}
               setNotes={setNotes}
               session={session}
               fmtDate={fmt}

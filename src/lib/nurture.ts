@@ -272,3 +272,32 @@ export function autoSelectVariant(stepNumber: number, leadQualityDesc: string, v
   // Return the first one as default if no match
   return variants[0];
 }
+
+/**
+ * Standardised patterns for appointment markers in notes.
+ * Used to extract scheduled calls from general history.
+ */
+export const APPOINTMENT_REGEX = /^Scheduled call for (.+?)(?:\s+\(([^)]+)\))?(?:\s+\[by ([^\]]+)\])?$/;
+
+export function isAppointmentNote(text: string): boolean {
+  return text.startsWith('Scheduled call for ');
+}
+
+export interface AppointmentInfo {
+  dateStr: string;
+  title: string;
+  bookerEmail: string;
+}
+
+export function parseAppointmentInfo(text: string): AppointmentInfo | null {
+  if (!isAppointmentNote(text)) return null;
+  const match = text.match(APPOINTMENT_REGEX);
+  if (!match) return { dateStr: text.replace('Scheduled call for ', ''), title: '', bookerEmail: '' };
+
+  return {
+    dateStr: match[1],
+    title: match[2] || '',
+    bookerEmail: match[3] || '',
+  };
+}
+

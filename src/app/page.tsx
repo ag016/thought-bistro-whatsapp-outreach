@@ -63,6 +63,7 @@ type NurtureMap = Record<string, NurtureEntry>;
 const CORRECT_PIN = '132103';
 const AUTH_KEY    = 'tb_auth_session';
 const TAB_KEY     = 'tb_last_tab'; // persists which tab the user was on
+const LOCAL_LEADS_KEY = 'tb_manual_leads'; 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -603,8 +604,27 @@ function AppInner() {
       ]);
       const data  = await leadsRes.json()  as { leads?: SheetLead[]; error?: string };
       const nData = await nurtureRes.json() as { nurture?: NurtureMap };
-      if (!leadsRes.ok) throw new Error(data.error ?? 'Failed to fetch leads');
-      setLeads(mergeLeads(data.leads ?? [], nData.nurture ?? {}));
+      
+      const serverLeads = mergeLeads(data.leads ?? [], nData.nurture ?? {});
+      
+      // Load local manual leads
+      let localLeads: Lead[] = [];
+      try {
+        const stored = localStorage.getItem(LOCAL_LEADS_KEY);
+        if (stored) localLeads = JSON.parse(stored);
+      } catch (e) {
+        console.error('Failed to load local leads', e);
+      }
+
+      // Merge — server leads (from sheet) take priority over local ghosts
+      const serverIds = new Set(serverLeads.map(l => l.id));
+      const filteredLocal = localLeads.filter(l => !serverIds.has(l.id));
+      
+      setLeads([...serverLeads, ...filteredLocal].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ));
+
+      if (!leadsRes.ok && serverLeads.length === 0) throw new Error(data.error ?? 'Failed to fetch leads');
     } catch (e) { setApiError(e instanceof Error ? e.message : 'Unknown error'); }
     finally { setLoading(false); }
   }, []);
@@ -869,7 +889,16 @@ function AppInner() {
       {showAddLead && (
         <AddLeadModal
           onClose={() => setShowAddLead(false)}
-          onAdd={newLead => setLeads(prev => [newLead, ...prev])}
+          onAdd={newLead => {
+            setLeads(prev => [newLead, ...prev]);
+            try {
+              const stored = localStorage.getItem(LOCAL_LEADS_KEY);
+              const current = stored ? JSON.parse(stored) : [];
+              localStorage.setItem(LOCAL_LEADS_KEY, JSON.stringify([newLead, ...current]));
+            } catch (e) {
+              console.error('Failed to save manual lead locally', e);
+            }
+          }}
         />
       )}
     </div>
