@@ -87,6 +87,7 @@ function doPost(e) {
   if (action === 'upsertNurture') { return json(upsertNurture(body)); }
   if (action === 'addNote')       { return json(addNote(body)); }
   if (action === 'updateStatus')  { return json(updateLeadStatus(body)); }
+  if (action === 'deleteNote')    { return json(deleteNote(body)); }
   if (action === 'addManualLead') { return json(addManualLead(body)); }
   if (action === 'initTabs')      { initSheetTabs(); return json({ success: true }); }
 
@@ -278,6 +279,34 @@ function addNote(body) {
 
   sheet.appendRow([leadId, noteText, body.createdAt || new Date().toISOString(), 'manual']);
   return { success: true };
+}
+
+// ── NOTES: DELETE ─────────────────────────────────────────────────────────────
+
+function deleteNote(body) {
+  var ss    = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(NOTES_TAB);
+  if (!sheet || sheet.getLastRow() < 2) return { success: false, error: 'Notes tab empty or not found' };
+
+  var leadId   = String(body.leadId   || '').trim();
+  var noteText = String(body.noteText || '').trim();
+  if (!leadId || !noteText) return { error: 'leadId and noteText required' };
+
+  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
+  var deletedCount = 0;
+
+  // We search exactly by leadId and noteText. 
+  // Loop backwards to handle potential multiple matches safely if index shifts.
+  for (var i = data.length - 1; i >= 0; i--) {
+    var rowLeadId = String(data[i][0]).trim();
+    var rowNote   = String(data[i][1]).trim();
+    if (rowLeadId === leadId && rowNote === noteText) {
+      sheet.deleteRow(i + 2);
+      deletedCount++;
+    }
+  }
+
+  return { success: true, deletedCount: deletedCount };
 }
 
 // ── INIT: CREATE TABS ─────────────────────────────────────────────────────────
