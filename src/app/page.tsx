@@ -300,7 +300,7 @@ export default function App() {
         ) : (
           <div style={{ paddingBottom: 24 }}>
             {view === 'list' ? (
-              <LeadList leads={displayLeads} onPause={handlePause} />
+              <LeadList leads={displayLeads} onPause={handlePause} onUpdateTag={handleUpdateTag} />
             ) : (
               <KanbanBoard leads={displayLeads} onUpdateTag={handleUpdateTag} />
             )}
