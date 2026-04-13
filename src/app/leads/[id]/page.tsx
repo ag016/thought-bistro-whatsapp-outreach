@@ -499,7 +499,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                 ))}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span style={{ color: 'var(--text-color)', fontWeight: 700 }}>Step {Math.min(lead.current_step + 1, 10)} / 10</span>
+                <span style={{ color: 'var(--text-color)', fontWeight: 700 }}>Step {lead.current_step} / 10</span>
                 {isCompleted ? (
                   <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Sequence complete</span>
                 ) : (

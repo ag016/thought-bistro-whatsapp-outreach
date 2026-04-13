@@ -178,7 +178,7 @@ export default function KanbanBoard({ leads, onUpdateTag }: KanbanBoardProps) {
                     {/* Footer: Step & Tag Switch */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-color)', opacity: 0.6 }}>
-                        Step {lead.current_step + 1}
+                        Step {lead.current_step}
                       </div>
                       
                       <div onClick={e => e.stopPropagation()} style={{ position: 'relative' }}>

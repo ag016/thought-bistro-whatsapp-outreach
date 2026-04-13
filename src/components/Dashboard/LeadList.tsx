@@ -181,15 +181,13 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
                 </td>
                 <td style={{ padding: '16px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ flex: 1, minWidth: 80, height: 6, background: 'var(--border-color)', borderRadius: 10, overflow: 'hidden' }}>
-                      <div style={{ 
-                        width: `${((lead.current_step + 1) / 10) * 100}%`, 
+                        width: `${(lead.current_step / 10) * 100}%`, 
                         height: '100%', 
                         background: 'var(--accent-color)',
                         transition: 'width 0.3s ease'
                       }} />
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.6 }}>{lead.current_step + 1}/10</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.6 }}>{lead.current_step}/10</span>
                   </div>
                 </td>
                 <td style={{ padding: '16px 20px' }}>
@@ -248,9 +246,9 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
             
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ flex: 1, height: 6, background: 'var(--border-color)', borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ width: `${((lead.current_step + 1) / 10) * 100}%`, height: '100%', background: 'var(--accent-color)' }} />
+                <div style={{ width: `${(lead.current_step / 10) * 100}%`, height: '100%', background: 'var(--accent-color)' }} />
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.5 }}>Step {lead.current_step + 1}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.5 }}>Step {lead.current_step}</span>
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

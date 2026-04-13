@@ -3,7 +3,7 @@ import { NurtureStep, MessageVariant } from '../types';
 export const NURTURE_SEQUENCE: NurtureStep[] = [
   {
     step_number: 1,
-    day_offset: 1,
+    day_offset: 0,
     message_text: `Hey Doctor, based on your answers, you're dealing with something a lot of clinics deal with...`,
     variants: [
       {
