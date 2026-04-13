@@ -4,10 +4,10 @@ import React from 'react';
 
 interface ViewSwitcherProps {
   view: 'list' | 'board';
-  setView: (view: 'list' | 'board') => void;
+  onViewChange: (view: 'list' | 'board') => void;
 }
 
-export default function ViewSwitcher({ view, setView }: ViewSwitcherProps) {
+export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) {
   return (
     <div style={{
       position: 'relative',
@@ -36,7 +36,7 @@ export default function ViewSwitcher({ view, setView }: ViewSwitcherProps) {
       {(['list', 'board'] as const).map(v => (
         <button 
           key={v} 
-          onClick={() => setView(v)} 
+          onClick={() => onViewChange(v)} 
           className="transition-enterprise"
           style={{ 
             flex: 1, 
