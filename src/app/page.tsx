@@ -214,9 +214,15 @@ export default function App() {
       {/* ── Sticky Header ── */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--surface-color), transparent 10%)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-color)', padding: '14px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontWeight: 800, fontSize: 20, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>Thought Bistro</span>
-            <span style={{ fontSize: 12, color: 'var(--accent-color)', marginLeft: 10 }}>Lead Machine · {leads.length} leads loaded</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <img 
+              src="https://d1yei2z3i6k35z.cloudfront.net/10516146/67e5ae77eae02_LogoBanner.001.png" 
+              alt="OtoChat Logo" 
+              style={{ height: 28, width: 'auto', objectFit: 'contain' }} 
+            />
+            <span style={{ fontSize: 12, color: 'var(--accent-color)', opacity: 0.8, fontWeight: 600, borderLeft: '1px solid var(--border-color)', paddingLeft: 12 }}>
+              Lead Machine · {leads.length} leads
+            </span>
           </div>
           <button onClick={handleSync} disabled={syncing || loading} className="transition-enterprise" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontSize: 13, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
             <span style={{ display: 'inline-block', animation: syncing ? 'spin 0.8s linear infinite' : 'none' }}>⟳</span>
@@ -365,9 +371,27 @@ function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: bool
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
       <div style={{ width: '100%', maxWidth: 280 }}>
         <div style={{ textAlign: 'center', marginBottom: 44 }}>
-          <div style={{ width: 76, height: 76, borderRadius: 24, background: 'linear-gradient(135deg,var(--accent-color),color-mix(in srgb, var(--accent-color), black 20%))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, margin: '0 auto 18px', boxShadow: `0 8px 32px color-mix(in srgb, var(--accent-color), transparent 75%)` }}>💬</div>
-          <div style={{ fontSize: 23, fontWeight: 800, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>Thought Bistro</div>
-          <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6, marginTop: 4 }}>Lead Machine</div>
+          <div style={{ 
+            width: 88, 
+            height: 88, 
+            borderRadius: 24, 
+            background: 'var(--surface-color)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            margin: '0 auto 24px', 
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            border: '1px solid var(--border-color)',
+            overflow: 'hidden'
+          }}>
+            <img 
+              src="https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png" 
+              alt="OtoChat" 
+              style={{ width: '80%', height: '80%', objectFit: 'contain' }} 
+            />
+          </div>
+          <div style={{ fontSize: 23, fontWeight: 800, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>OtoChat CRM</div>
+          <div style={{ fontSize: 13, color: 'var(--accent-color)', fontWeight: 600, marginTop: 4 }}>Enterprise Lead Management</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginBottom: 8, animation: shake ? 'shake 0.5s ease-in-out' : 'none' }}>
           {[0,1,2,3,4,5].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? 'var(--accent-color)' : 'transparent', border: `2px solid ${shake ? 'var(--danger-color)' : i < pin.length ? 'var(--accent-color)' : 'var(--border-color)'}`, transition: 'all 0.15s', boxShadow: i < pin.length ? `0 0 8px color-mix(in srgb, var(--accent-color), transparent 60%)` : 'none' }} />)}
