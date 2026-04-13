@@ -233,7 +233,39 @@ function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: L
 function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], leads: Lead[], onMarkSent: (id: string) => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [acked, setAcked] = useState<{ steps: Record<string, number> }>({ steps: {} });
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('acknowledged_notifications');
+    if (saved) {
+      try {
+        setAcked(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse acknowledged_notifications');
+      }
+    }
+  }, []);
+
+  const acknowledge = useCallback((leadId: string, currentStep: number) => {
+    setAcked(prev => {
+      const next = { ...prev, steps: { ...prev.steps, [leadId]: currentStep } };
+      localStorage.setItem('acknowledged_notifications', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const clearAll = () => {
+    setAcked(prev => {
+      const nextSteps = { ...prev.steps };
+      dueLeads.forEach(l => {
+        nextSteps[l.id] = l.current_step;
+      });
+      const next = { ...prev, steps: nextSteps };
+      localStorage.setItem('acknowledged_notifications', JSON.stringify(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -242,6 +274,9 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Filter out acknowledged follow-ups
+  const unreadDue = dueLeads.filter(l => (acked.steps[l.id] ?? -1) < l.current_step);
 
   // PWA Registration and Smart Notifications
   useEffect(() => {
@@ -343,10 +378,11 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
       n.onclick = () => {
         window.focus();
         router.push(`/leads/${newest.id}?tab=due`);
+        acknowledge(newest.id, newest.current_step);
       };
     }
     prevDueCount.current = dueLeads.length;
-  }, [dueLeads, router]);
+  }, [dueLeads, router, acknowledge]);
 
   const getNextMsgLink = (lead: Lead) => {
     const stepIdx = lead.current_step;
@@ -362,6 +398,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         onClick={() => setOpen(o => !o)}
+        className="transition-enterprise"
         style={{
           position: 'relative',
           background: 'var(--surface-color)',
@@ -375,7 +412,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
         }}
       >
         🔔
-        {dueLeads.length > 0 && (
+        {unreadDue.length > 0 && (
           <span style={{
             position: 'absolute',
             top: -4, right: -4,
@@ -387,7 +424,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             fontWeight: 800,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            {dueLeads.length > 9 ? '9+' : dueLeads.length}
+            {unreadDue.length > 9 ? '9+' : unreadDue.length}
           </span>
         )}
       </button>
@@ -406,15 +443,26 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
           boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
           zIndex: 100,
         }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', fontSize: 12, fontWeight: 700, color: 'var(--accent-color)' }}>
-            {dueLeads.length === 0 ? '🎉 All caught up!' : `${dueLeads.length} follow-up${dueLeads.length !== 1 ? 's' : ''} due`}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-color)' }}>
+              {unreadDue.length === 0 ? '🎉 All caught up!' : `${unreadDue.length} unread`}
+            </span>
+            {unreadDue.length > 0 && (
+              <button
+                onClick={clearAll}
+                style={{ background: 'none', border: 'none', color: 'var(--text-color)', opacity: 0.4, fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                className="transition-enterprise"
+              >
+                Clear All
+              </button>
+            )}
           </div>
-          {dueLeads.length === 0 ? (
-            <div style={{ padding: '16px', fontSize: 12, color: 'var(--text-color)', opacity: 0.5, textAlign: 'center' }}>
+          {unreadDue.length === 0 ? (
+            <div style={{ padding: '24px 16px', fontSize: 12, color: 'var(--text-color)', opacity: 0.5, textAlign: 'center' }}>
               No pending follow-ups right now.
             </div>
           ) : (
-            dueLeads.slice(0, 8).map(lead => {
+            unreadDue.slice(0, 8).map(lead => {
               const waLink = getNextMsgLink(lead);
               return (
                 <div
@@ -425,7 +473,11 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
                     <div>
                       <div
                         style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-color)', cursor: 'pointer' }}
-                        onClick={() => { setOpen(false); router.push(`/leads/${lead.id}?tab=due`); }}
+                        onClick={() => { 
+                          setOpen(false); 
+                          acknowledge(lead.id, lead.current_step);
+                          router.push(`/leads/${lead.id}?tab=due`); 
+                        }}
                       >
                         {lead.full_name}
                       </div>
@@ -436,7 +488,11 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
-                      onClick={() => { setOpen(false); router.push(`/leads/${lead.id}?tab=due`); }}
+                      onClick={() => { 
+                        setOpen(false); 
+                        acknowledge(lead.id, lead.current_step);
+                        router.push(`/leads/${lead.id}?tab=due`); 
+                      }}
                       style={{ flex: 1, padding: '6px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--surface-color)', color: 'var(--text-color)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
                     >
                       View Lead
@@ -446,6 +502,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
                         href={waLink}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => acknowledge(lead.id, lead.current_step)}
                         style={{
                           flex: 1,
                           padding: '6px',
