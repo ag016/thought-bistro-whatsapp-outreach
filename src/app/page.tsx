@@ -223,10 +223,10 @@ export default function App() {
 
   // Unique values for filters
   const filterOptions = {
-    clinics: Array.from(new Set(leads.map(l => l.metadata.clinic_type).filter(Boolean))).sort(),
-    statuses: Array.from(new Set(leads.map(l => l.metadata.lead_status).filter(Boolean))).sort(),
-    tags: Array.from(new Set(leads.map(l => l.internal_tag).filter(Boolean))).sort(),
-    problems: Array.from(new Set(leads.map(l => l.metadata.lead_quality_desc).filter(Boolean))).sort()
+    clinics: Array.from(new Set(leads.map(l => l.metadata.clinic_type))).filter(Boolean) as string[],
+    statuses: Array.from(new Set(leads.map(l => l.metadata.lead_status))).filter(Boolean) as string[],
+    tags: Array.from(new Set(leads.map(l => l.internal_tag))).filter(Boolean) as string[],
+    problems: Array.from(new Set(leads.map(l => l.metadata.lead_quality_desc))).filter(Boolean) as string[]
   };
 
   const clearAllFilters = () => {
