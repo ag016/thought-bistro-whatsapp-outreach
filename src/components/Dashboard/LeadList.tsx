@@ -181,6 +181,8 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
                 </td>
                 <td style={{ padding: '16px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 80, height: 6, background: 'var(--border-color)', borderRadius: 10, overflow: 'hidden' }}>
+                      <div style={{ 
                         width: `${(lead.current_step / 10) * 100}%`, 
                         height: '100%', 
                         background: 'var(--accent-color)',

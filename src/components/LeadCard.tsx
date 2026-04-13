@@ -48,7 +48,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({ lead, onSend, onPause }) => 
       
       <div className="mt-3 text-xs text-gray-400 flex justify-between">
         <span>Next: Day {currentStep.day_offset}</span>
-        <span>Step {lead.current_step + 1} / 10</span>
+        <span>Step {lead.current_step} / 10</span>
       </div>
     </div>
   );
