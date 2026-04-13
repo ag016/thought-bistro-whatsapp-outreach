@@ -442,7 +442,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
       </div>
 
       {/* --- Mobile Tab Navigation --- */}
-      <div className="mobile-tab-nav" style={{ display: 'none', padding: '16px 24px', gap: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+      <div className="mobile-tab-nav" style={{ padding: '16px 24px', gap: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
         {['info', 'timeline', 'actions'].map(tab => (
           <button
             key={tab}

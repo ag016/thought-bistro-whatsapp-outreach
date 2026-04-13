@@ -232,13 +232,18 @@ function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: L
 
 function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], leads: Lead[], onMarkSent: (id: string) => void }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [acked, setAcked] = useState<{ steps: Record<string, number> }>({ steps: {} });
   const ref = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Sync with localStorage ONLY on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!mounted || typeof window === 'undefined') return;
     const saved = localStorage.getItem('acknowledged_notifications');
     if (saved) {
       try {
@@ -403,6 +408,8 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     const text = personalizeMessage(base, lead.full_name, lead.metadata.clinic_type, lead.nickname);
     return generateWhatsAppLink(lead.phone_number, text);
   };
+
+  if (!mounted) return null;
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
