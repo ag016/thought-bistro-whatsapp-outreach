@@ -415,7 +415,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
   const m = lead.metadata;
   // ── Appointment Extraction ──
   const appointments = notes
-    .filter(n => isAppointmentNote(n.note_text) && n.source === 'system')
+    .filter(n => isAppointmentNote(n.note_text))
     .map(n => {
       const info = parseAppointmentInfo(n.note_text)!;
       const aptDate = new Date(info.dateStr);
@@ -611,15 +611,10 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                 </div>
               )}
             </div>
-
-          </div>
-
-          {/* --- CENTER PANEL: Message Timeline --- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'timeline' ? '' : 'hidden-mobile'}>
             
-            {/* Booked Appointments Banner — Prominent top section */}
+            {/* Booked Appointments — Moved to Left Sidebar below Lead Info */}
             {appointments.length > 0 && (
-              <div className="pane-card" style={{ border: '2px solid var(--info-color)', background: 'linear-gradient(to bottom, rgba(59,130,246,0.12), transparent)' }}>
+              <div className="pane-card" style={{ border: '2px solid var(--info-color)', background: 'linear-gradient(to bottom, rgba(59,130,246,0.12), transparent)', padding: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info-color)', letterSpacing: '0.08em', marginBottom: 14 }}>📅 UPCOMING CALLS</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {appointments.map((apt, i) => (
@@ -644,9 +639,9 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
 
                       <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-color)', opacity: 0.4, marginBottom: 8 }}>
-                          Send One-Tap Reminders
+                          Send Reminders
                         </div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {APPOINTMENT_CONFIRMATIONS.map(conf => {
                             const msg = conf.buildMessage(lead.full_name, apt.timeOnlyStr || apt.formattedDate, lead.nickname);
                             const waLink = generateWhatsAppLink(lead.phone_number, msg);
@@ -658,10 +653,10 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                                 rel="noopener noreferrer"
                                 className="transition-enterprise"
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 10.5,
                                   fontWeight: 700,
-                                  padding: '8px 14px',
-                                  borderRadius: 10,
+                                  padding: '6px 10px',
+                                  borderRadius: 8,
                                   background: 'var(--info-color)',
                                   color: 'var(--bg-color)',
                                   textDecoration: 'none',
@@ -679,6 +674,11 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* --- CENTER PANEL: Message Timeline --- */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'timeline' ? '' : 'hidden-mobile'}>
+            
             <div className="pane-card">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>MESSAGE TIMELINE</div>
               <div style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6, marginBottom: 20 }}>
