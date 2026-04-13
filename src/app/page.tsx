@@ -95,7 +95,13 @@ export default function App() {
   const [leads,        setLeads]        = useState<Lead[]>([]);
   const [loading,      setLoading]      = useState(false);
   const [syncing,      setSyncing]      = useState(false);
-  const [tab,          setTab]          = useState<'due' | 'all'>('due');
+  const [mainFilter,   setMainFilter]   = useState<'all' | 'due' | 'active' | 'paused'>('all');
+  const [activeFilters, setActiveFilters] = useState({
+    clinic: '',
+    status: '',
+    tag: '',
+    problem: ''
+  });
   const [view,          setView]          = useState<'list' | 'board'>('list');
   const [apiError,     setApiError]     = useState<string | null>(null);
 
@@ -196,8 +202,35 @@ export default function App() {
     }
   };
 
-  const dueLeads     = leads.filter(l => calculateIsDue(l));
-  const displayLeads = tab === 'due' ? dueLeads : leads;
+  const dueLeads = leads.filter(l => calculateIsDue(l));
+  
+  const displayLeads = leads.filter(l => {
+    // 1. Main Stat Category Filter
+    if (mainFilter === 'due' && !calculateIsDue(l)) return false;
+    if (mainFilter === 'active' && l.status !== 'active') return false;
+    if (mainFilter === 'paused' && l.status !== 'paused') return false;
+
+    // 2. Multi-dimensional filters
+    if (activeFilters.clinic && l.metadata.clinic_type !== activeFilters.clinic) return false;
+    if (activeFilters.status && l.metadata.lead_status !== activeFilters.status) return false;
+    if (activeFilters.tag && l.internal_tag !== activeFilters.tag) return false;
+    if (activeFilters.problem && l.metadata.lead_quality_desc !== activeFilters.problem) return false;
+
+    return true;
+  });
+
+  // Unique values for filters
+  const filterOptions = {
+    clinics: Array.from(new Set(leads.map(l => l.metadata.clinic_type).filter(Boolean))).sort(),
+    statuses: Array.from(new Set(leads.map(l => l.metadata.lead_status).filter(Boolean))).sort(),
+    tags: Array.from(new Set(leads.map(l => l.internal_tag).filter(Boolean))).sort(),
+    problems: Array.from(new Set(leads.map(l => l.metadata.lead_quality_desc).filter(Boolean))).sort()
+  };
+
+  const clearAllFilters = () => {
+    setMainFilter('all');
+    setActiveFilters({ clinic: '', status: '', tag: '', problem: '' });
+  };
 
   if (status === 'loading') return null;
   if (!isAccessGranted) return <PinScreen pin={pin} shake={pinShake} onInput={inputPin} onDelete={deletePin} />;
@@ -236,10 +269,10 @@ export default function App() {
 
         {/* ── Stats Bar ── */}
         <div className="stats-grid" style={{ marginBottom: 20 }}>
-          <StatCard label="Total Leads"  value={leads.length} />
-          <StatCard label="Due Today"    value={dueLeads.length} accent />
-          <StatCard label="Active"       value={leads.filter(l => l.status === 'active').length} />
-          <StatCard label="Paused"       value={leads.filter(l => l.status === 'paused').length} />
+          <StatCard label="Total Leads"  value={leads.length} active={mainFilter === 'all'} onClick={() => setMainFilter('all')} />
+          <StatCard label="Due Today"    value={dueLeads.length} accent active={mainFilter === 'due'} onClick={() => setMainFilter('due')} />
+          <StatCard label="Active"       value={leads.filter(l => l.status === 'active').length} active={mainFilter === 'active'} onClick={() => setMainFilter('active')} />
+          <StatCard label="Paused"       value={leads.filter(l => l.status === 'paused').length} active={mainFilter === 'paused'} onClick={() => setMainFilter('paused')} />
         </div>
 
         {/* ── API Error ── */}
@@ -248,42 +281,64 @@ export default function App() {
             <strong>⚠️ Error:</strong> {apiError}
           </div>
         )}
-
-        {/* ── Tabs ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          {/* Sliding Pill for Due / All */}
-          <div style={{
-            position: 'relative',
-            display: 'flex',
-            background: 'color-mix(in srgb, var(--border-color), transparent 50%)',
-            borderRadius: 100,
-            padding: 4,
-            width: 320,
-            gap: 4
+        {/* ── Filter Bar ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            flexWrap: 'wrap',
+            gap: 16 
           }}>
-            <div style={{
-              position: 'absolute',
-              top: 4, bottom: 4, left: 4,
-              width: 'calc(50% - 6px)',
-              background: 'var(--surface-color)',
-              borderRadius: 100,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.05)',
-              transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              transform: tab === 'all' ? 'translateX(calc(100% + 4px))' : 'translateX(0)',
-              zIndex: 0
-            }} />
-            {(['due', 'all'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)} className="transition-enterprise" style={{ 
-                flex: 1, padding: '10px 0', borderRadius: 100, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'color 0.3s', background: 'transparent',
-                color: tab === t ? 'var(--text-color)' : 'color-mix(in srgb, var(--text-color), transparent 40%)',
-                position: 'relative', zIndex: 1 
-              }}>
-                {t === 'due' ? `Due Today (${dueLeads.length})` : `All Leads (${leads.length})`}
-              </button>
-            ))}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <FilterDropdown 
+                label="Clinic Type" 
+                value={activeFilters.clinic} 
+                options={filterOptions.clinics} 
+                onChange={(v) => setActiveFilters(f => ({ ...f, clinic: v }))} 
+              />
+              <FilterDropdown 
+                label="Problem" 
+                value={activeFilters.problem} 
+                options={filterOptions.problems} 
+                onChange={(v) => setActiveFilters(f => ({ ...f, problem: v }))} 
+                shorten
+              />
+              <FilterDropdown 
+                label="Meta Status" 
+                value={activeFilters.status} 
+                options={filterOptions.statuses} 
+                onChange={(v) => setActiveFilters(f => ({ ...f, status: v }))} 
+              />
+              <FilterDropdown 
+                label="Internal Tag" 
+                value={activeFilters.tag} 
+                options={filterOptions.tags} 
+                onChange={(v) => setActiveFilters(f => ({ ...f, tag: v }))} 
+              />
+              
+              {(activeFilters.clinic || activeFilters.status || activeFilters.tag || activeFilters.problem || mainFilter !== 'all') && (
+                <button 
+                  onClick={clearAllFilters}
+                  className="transition-enterprise"
+                  style={{ 
+                    background: 'transparent', 
+                    border: 'none', 
+                    color: 'var(--accent-color)', 
+                    fontSize: 12, 
+                    fontWeight: 700, 
+                    cursor: 'pointer',
+                    padding: '8px 12px',
+                    opacity: 0.8
+                  }}
+                >
+                  ✕ Clear All
+                </button>
+              )}
+            </div>
+            
+            <ViewSwitcher view={view} onViewChange={setView} />
           </div>
-          
-          <ViewSwitcher view={view} setView={setView} />
         </div>
 
         {/* ── Lead View ── */}
@@ -302,7 +357,7 @@ export default function App() {
             </div>
           </div>
         ) : displayLeads.length === 0 ? (
-          <EmptyState tab={tab} />
+          <EmptyState tab={mainFilter} />
         ) : (
           <div style={{ paddingBottom: 24 }}>
             {view === 'list' ? (
@@ -337,17 +392,58 @@ export default function App() {
 
 // ── Small components ──────────────────────────────────────────────────────────
 
-function StatCard({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
+function StatCard({ label, value, accent = false, active = false, onClick }: { label: string; value: number; accent?: boolean; active?: boolean; onClick: () => void }) {
   return (
-    <div className={`transition-enterprise ${accent ? '' : 'deep-shadow'}`} style={{ 
-      padding: '14px 16px', 
-      borderRadius: 16, 
-      background: accent ? 'var(--accent-color)' : 'var(--surface-color)', 
-      border: `1px solid ${accent ? 'transparent' : 'var(--border-color)'}`,
-      boxShadow: accent ? `0 0 25px color-mix(in srgb, var(--accent-color), transparent 60%)` : '0 4px 12px rgba(0,0,0,0.3)',
-    }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: accent ? 'var(--bg-color)' : 'var(--text-color)', opacity: accent ? 0.9 : 0.6, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: accent ? 'var(--bg-color)' : 'var(--text-color)' }}>{value}</div>
+    <div 
+      onClick={onClick}
+      className={`transition-enterprise ${accent ? '' : 'deep-shadow'}`} 
+      style={{ 
+        padding: '14px 16px', 
+        borderRadius: 16, 
+        background: active ? (accent ? 'var(--bg-color)' : 'var(--accent-color)') : (accent ? 'var(--accent-color)' : 'var(--surface-color)'), 
+        border: `1px solid ${active ? 'var(--accent-color)' : 'var(--border-color)'}`,
+        boxShadow: accent ? `0 0 25px color-mix(in srgb, var(--accent-color), transparent 60%)` : '0 4px 12px rgba(0,0,0,0.3)',
+        cursor: 'pointer',
+        transform: active ? 'translateY(-2px)' : 'none',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
+      <div style={{ fontSize: 11, fontWeight: 700, color: active ? (accent ? 'var(--accent-color)' : 'var(--bg-color)') : (accent ? 'var(--bg-color)' : 'var(--text-color)'), opacity: accent ? 0.9 : 0.6, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: active ? (accent ? 'var(--accent-color)' : 'var(--bg-color)') : (accent ? 'var(--bg-color)' : 'var(--text-color)') }}>{value}</div>
+    </div>
+  );
+}
+
+function FilterDropdown({ label, value, options, onChange, shorten = false }: { label: string; value: string; options: string[]; onChange: (v: string) => void; shorten?: boolean }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <select 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)}
+        className="transition-enterprise"
+        style={{ 
+          appearance: 'none',
+          background: value ? 'color-mix(in srgb, var(--accent-color), transparent 90%)' : 'var(--surface-color)',
+          border: `1px solid ${value ? 'var(--accent-color)' : 'var(--border-color)'}`,
+          borderRadius: 12,
+          padding: '8px 32px 8px 12px',
+          fontSize: 12,
+          fontWeight: 600,
+          color: value ? 'var(--accent-color)' : 'var(--text-color)',
+          cursor: 'pointer',
+          outline: 'none',
+          maxWidth: shorten ? 140 : 180,
+          textOverflow: 'ellipsis'
+        }}
+      >
+        <option value="">{label}</option>
+        {options.map(opt => (
+          <option key={opt} value={opt}>
+            {shorten && opt.length > 25 ? opt.slice(0, 25) + '...' : opt}
+          </option>
+        ))}
+      </select>
+      <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 10, opacity: 0.5 }}>▼</div>
     </div>
   );
 }
@@ -356,8 +452,8 @@ function EmptyState({ tab }: { tab: string }) {
   return (
     <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--accent-color)' }}>
       <div style={{ fontSize: 52, marginBottom: 14 }}>{tab === 'due' ? '🎉' : '📭'}</div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-color)', marginBottom: 6 }}>{tab === 'due' ? 'All caught up!' : 'No leads yet'}</div>
-      <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6 }}>{tab === 'due' ? 'No leads due for messaging today.' : 'Press Sync to load leads from Google Sheets.'}</div>
+      <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-color)', marginBottom: 6 }}>{tab === 'due' ? 'All caught up!' : 'No results found'}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6 }}>Try clearing filters to see more leads.</div>
     </div>
   );
 }
