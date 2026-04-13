@@ -236,34 +236,44 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
   const [acked, setAcked] = useState<{ steps: Record<string, number> }>({ steps: {} });
   const ref = useRef<HTMLDivElement>(null);
 
+  // Sync with localStorage ONLY on mount
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const saved = localStorage.getItem('acknowledged_notifications');
     if (saved) {
       try {
-        setAcked(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && parsed.steps) {
+          setAcked(parsed);
+        }
       } catch (e) {
         console.error('Failed to parse acknowledged_notifications');
       }
     }
   }, []);
 
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (acked && Object.keys(acked.steps).length > 0) {
+      localStorage.setItem('acknowledged_notifications', JSON.stringify(acked));
+    }
+  }, [acked]);
+
   const acknowledge = useCallback((leadId: string, currentStep: number) => {
-    setAcked(prev => {
-      const next = { ...prev, steps: { ...prev.steps, [leadId]: currentStep } };
-      localStorage.setItem('acknowledged_notifications', JSON.stringify(next));
-      return next;
-    });
+    setAcked(prev => ({
+      ...prev,
+      steps: { ...prev?.steps, [leadId]: currentStep }
+    }));
   }, []);
 
   const clearAll = () => {
     setAcked(prev => {
-      const nextSteps = { ...prev.steps };
+      const nextSteps = { ...(prev?.steps || {}) };
       dueLeads.forEach(l => {
         nextSteps[l.id] = l.current_step;
       });
-      const next = { ...prev, steps: nextSteps };
-      localStorage.setItem('acknowledged_notifications', JSON.stringify(next));
-      return next;
+      return { ...prev, steps: nextSteps };
     });
   };
 
@@ -276,7 +286,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
   }, []);
 
   // Filter out acknowledged follow-ups
-  const unreadDue = dueLeads.filter(l => (acked.steps[l.id] ?? -1) < l.current_step);
+  const unreadDue = dueLeads.filter(l => (acked?.steps?.[l.id] ?? -1) < l.current_step);
 
   // PWA Registration and Smart Notifications
   useEffect(() => {
@@ -704,32 +714,40 @@ function AppInner() {
       </Suspense>
       <style>{`
         .stats-grid   { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .main-content { padding: 32px 32px 0; width: 100%; }
+        
+        @media(max-width:768px) {
+          .main-content { padding: 16px 16px 0; }
+          .stats-grid { gap: 8px; }
+        }
+        
+        @media(max-width:480px) {
+          .stats-grid { grid-template-columns: 1fr; }
+        }
+
         @media(min-width:768px)  { 
           .stats-grid { grid-template-columns:repeat(4,1fr); } 
         }
       `}</style>
 
       {/* ── Sticky Header ── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--surface-color), transparent 10%)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-color)', padding: '14px 24px' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--surface-color), transparent 10%)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-color)', padding: '14px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img
               src="https://d1yei2z3i6k35z.cloudfront.net/10516146/67e5ae77eae02_LogoBanner.001.png"
               alt="Bistro CRM Logo"
-              style={{ height: 28, width: 'auto', objectFit: 'contain' }}
+              style={{ height: 24, width: 'auto', objectFit: 'contain' }}
             />
-            <span style={{ fontSize: 12, color: 'var(--accent-color)', opacity: 0.8, fontWeight: 600, borderLeft: '1px solid var(--border-color)', paddingLeft: 12 }}>
-              Lead Machine · {leads.length} leads
-            </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {/* Add Lead Button */}
             <button
               onClick={() => setShowAddLead(true)}
               className="transition-enterprise"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'var(--accent-color)', border: 'none', color: 'var(--bg-color)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 10, background: 'var(--accent-color)', border: 'none', color: 'var(--bg-color)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
             >
-              + Add Lead
+              + Add
             </button>
             {/* Notification Bell */}
             <NotificationBell 
@@ -738,15 +756,14 @@ function AppInner() {
               onMarkSent={handleMarkSent} 
             />
             {/* Sync Button */}
-            <button onClick={handleSync} disabled={syncing || loading} className="transition-enterprise" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontSize: 13, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
+            <button onClick={handleSync} disabled={syncing || loading} className="transition-enterprise" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 10, background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontSize: 12, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
               <span style={{ display: 'inline-block', animation: syncing ? 'spin 0.8s linear infinite' : 'none' }}>⟳</span>
-              {syncing ? 'Syncing…' : 'Sync'}
             </button>
           </div>
         </div>
       </div>
 
-      <div style={{ padding: '32px 32px 0', width: '100%' }}>
+      <div className="main-content">
 
         {/* ── Stats Bar ── */}
         <div className="stats-grid" style={{ marginBottom: 20 }}>

@@ -51,6 +51,16 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
 
   return (
     <div style={{ width: '100%' }}>
+      <style>{`
+        .lead-list-table { width: 100%; border-collapse: collapse; display: table; }
+        .lead-mobile-cards { display: none; }
+        
+        @media (max-width: 768px) {
+          .lead-list-table { display: none; }
+          .lead-mobile-cards { display: flex; flex-direction: column; gap: 12px; }
+        }
+      `}</style>
+
       {/* Global Tag Filter */}
       <div style={{ 
         display: 'flex', 
@@ -75,7 +85,7 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
             cursor: 'pointer'
           }}
         >
-          All Leads
+          All
         </button>
         {uniqueTags.map(tag => (
           <button 
@@ -98,8 +108,9 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
         ))}
       </div>
 
-      <div className="pane-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <table className="data-grid" style={{ width: '100%', borderCollapse: 'collapse' }}>
+      {/* Desktop Table */}
+      <div className="pane-card lead-list-table" style={{ padding: 0, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
               <th style={{ padding: '16px 20px', fontSize: 11, fontWeight: 700, color: 'var(--text-color)', opacity: 0.5, textTransform: 'uppercase' }}>Lead Name</th>
@@ -164,12 +175,6 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
                       {tagOptions.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                     <div style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 9, opacity: 0.5 }}>▼</div>
-                    
-                    {updatingId === lead.id && (
-                      <div style={{ position: 'absolute', right: -24, top: '50%', transform: 'translateY(-50%)' }}>
-                        <div style={{ width: 12, height: 12, border: '2px solid var(--accent-color)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                      </div>
-                    )}
                   </div>
                 </td>
                 <td style={{ padding: '16px 20px' }}>
@@ -192,6 +197,55 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="lead-mobile-cards">
+        {filteredLeads.map(lead => (
+          <div 
+            key={lead.id}
+            onClick={() => handleRowClick(lead.id)}
+            className="pane-card transition-enterprise"
+            style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ 
+                  width: 8, height: 8, borderRadius: '50%', 
+                  background: lead.status === 'paused' ? 'var(--warning-color)' : 'var(--accent-color)',
+                  boxShadow: `0 0 10px ${lead.status === 'paused' ? 'var(--warning-color)' : 'var(--accent-color)40'}`
+                }} />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-color)' }}>{lead.full_name || 'Unknown'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.5 }}>{lead.company_name} · {lead.phone_number}</div>
+                </div>
+              </div>
+              <div onClick={e => e.stopPropagation()}>
+                <select 
+                  value={lead.internal_tag || 'No Tag'}
+                  onChange={(e) => handleTagChange(lead.id, e.target.value)}
+                  style={{ 
+                    fontSize: 10, fontWeight: 800, padding: '4px 12px', borderRadius: 100, border: '1px solid var(--border-color)', background: 'var(--surface-color)', color: 'var(--accent-color)', outline: 'none'
+                  }}
+                >
+                  <option value="No Tag">No Tag</option>
+                  {tagOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1, height: 6, background: 'var(--border-color)', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ width: `${((lead.current_step + 1) / 10) * 100}%`, height: '100%', background: 'var(--accent-color)' }} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.5 }}>Step {lead.current_step + 1}</span>
+            </div>
+            
+            <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.4, textAlign: 'right' }}>
+              Last Active: {formatDate(lead.last_sent_at)}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
