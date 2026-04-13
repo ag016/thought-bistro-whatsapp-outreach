@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink, APPOINTMENT_CONFIRMATIONS, autoExtractNickname, isAppointmentNote, parseAppointmentInfo } from '@/lib/nurture';
+import { NURTURE_SEQUENCE, getDaysUntilDue, autoSelectVariant, personalizeMessage, generateWhatsAppLink, APPOINTMENT_CONFIRMATIONS, autoExtractNickname, isAppointmentNote, parseAppointmentInfo, getNextDueTimestamp } from '@/lib/nurture';
 import MessageBubble from '@/components/Leads/MessageBubble';
 import ActionCenter from '@/components/Leads/ActionCenter';
+import Timer from '@/components/UI/Timer';
 import { Skeleton } from '@/components/UI/Skeleton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -499,11 +500,18 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                 <span style={{ color: 'var(--text-color)', fontWeight: 700 }}>Step {Math.min(lead.current_step + 1, 10)} / 10</span>
-                {isCompleted
-                  ? <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Sequence complete</span>
-                  : daysUntil <= 0
-                    ? <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Due now</span>
-                    : <span style={{ color: 'var(--text-color)', opacity: 0.6 }}>Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
+                {isCompleted ? (
+                  <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Sequence complete</span>
+                ) : (
+                  (() => {
+                    const dueTs = getNextDueTimestamp(lead);
+                    return dueTs <= Date.now() ? (
+                      <span style={{ color: 'var(--accent-color)', fontWeight: 700 }}>Due now</span>
+                    ) : (
+                      <Timer targetTimestamp={dueTs} prefix="Next in" style={{ color: 'var(--text-color)' }} />
+                    );
+                  })()
+                )}
               </div>
               {lead.last_sent_at && (
                 <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.4, marginTop: 6 }}>Last sent: {fmt(lead.last_sent_at)}</div>
@@ -707,6 +715,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                           onMarkSent={handleMarkMsgSent}
                           fmtDate={fmt}
                           generateWhatsAppLink={generateWhatsAppLink}
+                          nextDueTimestamp={i === lead.current_step && !isCompleted ? getNextDueTimestamp(lead) : undefined}
                         />
                       </div>
                     </div>

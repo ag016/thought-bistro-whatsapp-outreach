@@ -87,6 +87,7 @@ function doPost(e) {
   if (action === 'upsertNurture') { return json(upsertNurture(body)); }
   if (action === 'addNote')       { return json(addNote(body)); }
   if (action === 'updateStatus')  { return json(updateLeadStatus(body)); }
+  if (action === 'addManualLead') { return json(addManualLead(body)); }
   if (action === 'initTabs')      { initSheetTabs(); return json({ success: true }); }
 
   return json({ error: 'Unknown action: ' + action });
@@ -428,4 +429,45 @@ function syncAllLeads() {
     Utilities.sleep(300);
   }
   Logger.log('Done — ' + (lastRow - 1) + ' leads sent.');
+}
+
+/**
+ * Appends a new manual lead row to the main LEADS_TAB.
+ * Maps incoming JSON fields to the correct columns dynamically.
+ */
+function addManualLead(body) {
+  var ss    = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(LEADS_TAB);
+  if (!sheet) return { error: 'Leads tab "' + LEADS_TAB + '" not found' };
+
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  
+  // Create an empty row of the right length
+  var newRow = new Array(lastCol).fill('');
+  
+  // Mapping logic: body -> headers
+  function setVal(headerPath, value) {
+    var idx = headers.indexOf(headerPath);
+    if (idx !== -1) newRow[idx] = value;
+  }
+
+  setVal('id',           body.sheet_id     || '');
+  setVal('created_time', body.created_at   || '');
+  setVal('full_name',    body.full_name    || '');
+  setVal('phone_number', body.phone_number || '');
+  setVal('company_name', body.company_name || '');
+  setVal('lead_status',  body.metadata?.lead_status || 'CREATED');
+  setVal('India Time',   body.metadata?.india_time   || '');
+  setVal('platform',     body.metadata?.platform     || 'Manual');
+  setVal('ad_name',      body.metadata?.ad_name       || 'Manual Entry');
+  setVal('campaign_name',body.metadata?.campaign_name || 'Manual Entry');
+
+  // Question mappings
+  setVal('What type of clinic do you run?',                                  body.metadata?.clinic_type       || '');
+  setVal('Which of these best describes your current leads?',               body.metadata?.lead_quality_desc || '');
+  setVal('anything_else_you_would_like_us_to_know_before_we_contact_you?', body.metadata?.notes             || '');
+
+  sheet.appendRow(newRow);
+  return { success: true, leadId: body.sheet_id };
 }

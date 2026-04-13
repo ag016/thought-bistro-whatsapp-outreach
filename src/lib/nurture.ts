@@ -301,3 +301,23 @@ export function parseAppointmentInfo(text: string): AppointmentInfo | null {
   };
 }
 
+/**
+ * Calculates the exact timestamp when the next message is due.
+ * For step 0: created_at + 0 (due immediately)
+ * For step N: last_sent_at + NURTURE_SEQUENCE[stepN].day_offset
+ */
+export function getNextDueTimestamp(lead: { current_step: number; created_at: string; last_sent_at: string | null }): number {
+  if (lead.current_step >= NURTURE_SEQUENCE.length) return 0;
+  
+  const step = NURTURE_SEQUENCE[lead.current_step];
+  const baselineStr = (lead.current_step === 0 || !lead.last_sent_at)
+    ? lead.created_at
+    : lead.last_sent_at;
+    
+  const baseline = new Date(baselineStr).getTime();
+  const offsetMs = step.day_offset * 24 * 60 * 60 * 1000;
+  
+  return baseline + offsetMs;
+}
+
+

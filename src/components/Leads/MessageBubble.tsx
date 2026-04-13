@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Timer from '@/components/UI/Timer';
 
 interface MessageBubbleProps {
   stepNumber?: number; // Optional — templates won't have it
@@ -9,9 +10,10 @@ interface MessageBubbleProps {
   hasBeenSent?: boolean;
   sentTimestamp?: string;
   isCurrentTarget?: boolean;
+  nextDueTimestamp?: number;
   phoneNumber: string;
   onMarkSent?: (stepNumber?: number) => void;
-  fmtDate?: (date: string) => string;
+  fmtDate?: (date: string) => void; // Unused but kept for structure
   generateWhatsAppLink: (phone: string, text: string) => string;
 }
 
@@ -22,6 +24,7 @@ export default function MessageBubble({
   hasBeenSent,
   sentTimestamp,
   isCurrentTarget,
+  nextDueTimestamp,
   phoneNumber,
   onMarkSent,
   fmtDate,
@@ -62,11 +65,17 @@ export default function MessageBubble({
         }`}>
           {displayTitle}
         </div>
-        {hasBeenSent && sentTimestamp && fmtDate && (
-          <div className="text-[10px] text-emerald-500 font-medium opacity-80">✓ Sent {fmtDate(sentTimestamp)}</div>
+        {hasBeenSent && sentTimestamp && (
+          <div className="text-[10px] text-emerald-500 font-medium opacity-80">✓ Sent</div>
         )}
         {!hasBeenSent && isCurrentTarget && !isExpanded && (
-          <div className="text-[10px] text-emerald-400 font-semibold animate-pulse">● Due Now</div>
+          <>
+            {nextDueTimestamp && nextDueTimestamp > Date.now() ? (
+              <Timer targetTimestamp={nextDueTimestamp} prefix="Due in" />
+            ) : (
+              <div className="text-[10px] text-emerald-400 font-semibold animate-pulse">● Due Now</div>
+            )}
+          </>
         )}
       </div>
 

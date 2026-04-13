@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lead } from '@/types';
+import { calculateIsDue, getNextDueTimestamp } from '@/lib/nurture';
+import Timer from '@/components/UI/Timer';
 
 interface LeadListProps {
   leads: Lead[];
@@ -191,7 +193,17 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
                   </div>
                 </td>
                 <td style={{ padding: '16px 20px' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6 }}>{formatDate(lead.last_sent_at)}</span>
+                  {(() => {
+                    const dueTs = getNextDueTimestamp(lead);
+                    const isDue = calculateIsDue(lead);
+                    if (isDue) {
+                      return <span style={{ fontSize: 12, color: 'var(--accent-color)', fontWeight: 700 }}>Due Now</span>;
+                    }
+                    if (dueTs > Date.now()) {
+                      return <Timer targetTimestamp={dueTs} prefix="Due in" style={{ fontSize: 11 }} />;
+                    }
+                    return <span style={{ fontSize: 12, color: 'var(--text-color)', opacity: 0.6 }}>{formatDate(lead.last_sent_at)}</span>;
+                  })()}
                 </td>
               </tr>
             ))}
@@ -241,8 +253,17 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
               <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.5 }}>Step {lead.current_step + 1}</span>
             </div>
             
-            <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.4, textAlign: 'right' }}>
-              Last Active: {formatDate(lead.last_sent_at)}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.4 }}>
+                Last Active: {formatDate(lead.last_sent_at)}
+              </div>
+              {(() => {
+                const dueTs = getNextDueTimestamp(lead);
+                if (!calculateIsDue(lead) && dueTs > Date.now()) {
+                  return <Timer targetTimestamp={dueTs} prefix="Due" style={{ fontSize: 10 }} />;
+                }
+                return null;
+              })()}
             </div>
           </div>
         ))}
