@@ -332,7 +332,10 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     registerSW();
   }, []);
 
+  // ── Notification Logic ─────────────────────────────────────────────────────
   useEffect(() => {
+    let isMounted = true;
+
     async function checkNotifications() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
@@ -340,12 +343,15 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
         const registration = await navigator.serviceWorker.getRegistration();
         if (!registration) return;
 
-        let subscription = await registration.pushManager.getSubscription();
-        setIsSubscribed(!!subscription);
+        const subscription = await registration.pushManager.getSubscription();
+        if (isMounted) {
+          setIsSubscribed(!!subscription);
+        }
         if (!subscription) return;
 
         // 1. NEW LEADS: Trigger ONLY if the lead wasn't in the baseline when app opened
-        const newLeads = leads.filter(l => !sessionBaseline.current.leads.has(l.id));
+        const knownLeadIds = JSON.parse(localStorage.getItem('notified_leads') || '[]');
+        const newLeads = leads.filter(l => !knownLeadIds.includes(l.id));
         
         if (newLeads.length > 0) {
           const latestLead = newLeads[0];
@@ -356,11 +362,11 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             waLink: generateWhatsAppLink(latestLead.phone_number, `Hi ${latestLead.full_name}, welcome!`)
           }, subscription);
           
-          // Add to baseline so we don't notify again
-          sessionBaseline.current.leads.add(latestLead.id);
+          localStorage.setItem('notified_leads', JSON.stringify([...knownLeadIds, ...newLeads.map(l => l.id)]));
         }
 
         // 2. DUE MESSAGES: Trigger ONLY if a lead just transitioned to "Due" relative to baseline
+        const notifiedSteps = JSON.parse(localStorage.getItem('notified_steps') || '{}');
         const newlyDue = dueLeads.filter(l => {
           const baselineStep = sessionBaseline.current.steps[l.id] ?? -1;
           return l.current_step > baselineStep;
@@ -372,7 +378,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             title: '⏰ Follow-up Due',
             body: `${dueLead.full_name} is due for message ${dueLead.current_step + 1}`,
             url: `/leads/${dueLead.id}?tab=due`,
-            waLink: generateWhatsAppLink(dueLead.phone_number, personalizeMessage(
+            waLink: generateWhatsAppLink(dueHn_url = personalizeMessage(
               NURTURE_SEQUENCE[dueLead.current_step]?.message_text || '', 
               dueLead.full_name, 
               dueLead.metadata.clinic_type, 
@@ -380,12 +386,11 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             ))
           }, subscription);
 
-          // Update baseline so we don't notify again
-          sessionBaseline.current.steps[dueLead.id] = dueLead.current_step;
+          localStorage.setItem('notified_steps', JSON.stringify({ ...notifiedSteps, [dueLead.id]: dueLead.current_step }));
         }
 
       } catch (e) {
-        console.error('Robust Notification error:', e);
+        console.error('Background Notification check error:', e);
       }
     }
 
@@ -405,8 +410,11 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
       }
     }
 
-    const timeoutId = setTimeout(checkNotifications, 2000);
-    return () => clearTimeout(timeoutId);
+    const timeoutId = setTimeout(checkNotifications, 5000);
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [leads, dueLeads]);
 
   const handleEnableNotifications = async () => {
