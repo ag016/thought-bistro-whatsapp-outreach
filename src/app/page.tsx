@@ -108,6 +108,17 @@ function formatDate(str: string) {
   catch { return str; }
 }
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 // ── Add Lead Modal ─────────────────────────────────────────────────────────────
 
 function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: Lead) => void }) {
@@ -235,6 +246,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   
   const [acked, setAcked] = useState<{ steps: Record<string, number> }>(() => {
     if (typeof window === 'undefined') return { steps: {} };
@@ -324,6 +336,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
         if (!registration) return;
 
         let subscription = await registration.pushManager.getSubscription();
+        setIsSubscribed(!!subscription);
         if (!subscription) return;
 
         // 1. NEW LEADS: Trigger ONLY if the lead wasn't in the baseline when app opened
@@ -390,6 +403,42 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     const timeoutId = setTimeout(checkNotifications, 2000);
     return () => clearTimeout(timeoutId);
   }, [leads, dueLeads]);
+
+  const handleEnableNotifications = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Notifications are not supported in this browser.');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('Permission not granted for notifications.');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      
+      if (!publicKey) {
+        console.error('NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing');
+        alert('Push notification configuration is incomplete (Public Key missing).');
+        return;
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+
+      console.log('Subscribed!', subscription);
+      setIsSubscribed(true);
+      setOpen(false);
+    } catch (e) {
+      console.error('Subscription failed', e);
+      alert('Failed to enable push notifications.');
+    }
+  };
 
   const prevDueCount = useRef(dueLeads.length);
   useEffect(() => {
@@ -482,7 +531,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
               <button
                 onClick={handleEnableNotifications}
                 className="transition-enterprise"
-                style={{ background: 'var(--accent-color)', color: 'var(--bg-color)', fontSize: 10, fontWeight: 700, cursor: 'pointer, borderRadius: 8, padding: '4px 8px' }}
+                style={{ background: 'var(--accent-color)', color: 'var(--bg-color)', fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 8, padding: '4px 8px' }}
               >
                 Enable Push 🔔
               </button>
