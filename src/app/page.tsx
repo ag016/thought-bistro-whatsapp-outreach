@@ -236,7 +236,6 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   
-  // Initialize state SYNCHRONOUSLY from localStorage to prevent "flashing" notifications
   const [acked, setAcked] = useState<{ steps: Record<string, number> }>(() => {
     if (typeof window === 'undefined') return { steps: {} };
     const saved = localStorage.getItem('acknowledged_notifications');
@@ -251,9 +250,27 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     return { steps: {} };
   });
   
+  // ── SESSION BASELINE ─────────────────────────────────────────────────────────
+  // This prevents "notification floods" on app launch.
+  // We capture the state of leads on mount and only notify for changes AFTER this point.
+  const sessionBaseline = useRef<{ 
+    leads: Set<string>, 
+    steps: Record<string, number> 
+  }>({ leads: new Set(), steps: {} });
+
   const ref = useRef<HTMLDivElement>(null);
 
-  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    setMounted(true);
+    // Initialize baseline from the first load of leads
+    if (leads.length > 0) {
+      sessionBaseline.current.leads = new Set(leads.map(l => l.id));
+      leads.forEach(l => {
+        sessionBaseline.current.steps[l.id] = l.current_step;
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     localStorage.setItem('acknowledged_notifications', JSON.stringify(acked));
@@ -284,10 +301,8 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Filter out acknowledged follow-ups
   const unreadDue = dueLeads.filter(l => (acked?.steps?.[l.id] ?? -1) < l.current_step);
 
-  // PWA Registration - Run ONLY ONCE on mount
   useEffect(() => {
     async function registerSW() {
       if (!('serviceWorker' in navigator)) return;
@@ -300,7 +315,6 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     registerSW();
   }, []);
 
-  // Notification Logic - Robust implementation to prevent browser crashes
   useEffect(() => {
     async function checkNotifications() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
@@ -310,15 +324,10 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
         if (!registration) return;
 
         let subscription = await registration.pushManager.getSubscription();
-        if (!subscription) {
-          // STOP: Never request permission in a background effect. 
-          // This causes "Client Side Exceptions" on mobile browsers.
-          return; 
-        }
+        if (!subscription) return;
 
-        // 1. NEW LEADS: Check if any lead in the current list hasn't been notified yet
-        const knownLeadIds = JSON.parse(localStorage.getItem('notified_leads') || '[]');
-        const newLeads = leads.filter(l => !knownLeadIds.includes(l.id));
+        // 1. NEW LEADS: Trigger ONLY if the lead wasn't in the baseline when app opened
+        const newLeads = leads.filter(l => !sessionBaseline.current.leads.has(l.id));
         
         if (newLeads.length > 0) {
           const latestLead = newLeads[0];
@@ -329,14 +338,14 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             waLink: generateWhatsAppLink(latestLead.phone_number, `Hi ${latestLead.full_name}, welcome!`)
           }, subscription);
           
-          localStorage.setItem('notified_leads', JSON.stringify([...knownLeadIds, ...newLeads.map(l => l.id)]));
+          // Add to baseline so we don't notify again
+          sessionBaseline.current.leads.add(latestLead.id);
         }
 
-        // 2. DUE MESSAGES: Check for leads that just transitioned to "Due"
-        const notifiedSteps = JSON.parse(localStorage.getItem('notified_steps') || '{}');
+        // 2. DUE MESSAGES: Trigger ONLY if a lead just transitioned to "Due" relative to baseline
         const newlyDue = dueLeads.filter(l => {
-          const lastNotifiedStep = notifiedSteps[l.id] ?? -1;
-          return l.current_step > lastNotifiedStep;
+          const baselineStep = sessionBaseline.current.steps[l.id] ?? -1;
+          return l.current_step > baselineStep;
         });
 
         if (newlyDue.length > 0) {
@@ -353,8 +362,8 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             ))
           }, subscription);
 
-          const updatedSteps = { ...notifiedSteps, [dueLead.id]: dueLead.current_step };
-          localStorage.setItem('notified_steps', JSON.stringify(updatedSteps));
+          // Update baseline so we don't notify again
+          sessionBaseline.current.steps[dueLead.id] = dueLead.current_step;
         }
 
       } catch (e) {
