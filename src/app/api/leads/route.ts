@@ -15,7 +15,7 @@ export async function GET() {
   }
 
   // Tab name confirmed from your Google Sheet
-  const range  = 'Clinic Mar 31!A:Z';
+  const range  = 'Clinic Mar 31!A:ZZ';
   const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${GOOGLE_API_KEY}`;
 
   let sheetData: { values?: string[][] };
