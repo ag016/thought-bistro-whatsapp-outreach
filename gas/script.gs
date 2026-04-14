@@ -91,6 +91,8 @@ function doPost(e) {
   if (action === 'updateStatus')  { return json(updateLeadStatus(body)); }
   if (action === 'deleteNote')    { return json(deleteNote(body)); }
   if (action === 'addManualLead') { return json(addManualLead(body)); }
+  if (action === 'saveSubscription') { return json(saveSubscription(body)); }
+  if (action === 'getSubscriptions') { return json(getSubscriptions()); }
   if (action === 'initTabs')      { initSheetTabs(); return json({ success: true }); }
 
   return json({ error: 'Unknown action: ' + action });
@@ -156,6 +158,38 @@ function updateNickname(body) {
     }
   }
   return { error: 'Lead not found' };
+}
+
+function saveSubscription(body) {
+  var ss = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName('Subscriptions');
+  if (!sheet) {
+    sheet = ss.insertSheet('Subscriptions');
+    sheet.appendRow(['subscription_json', 'created_at']);
+  }
+  
+  var subJson = body.subscription;
+  // Check if already exists
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === subJson) return { success: true, status: 'exists' };
+  }
+  
+  sheet.appendRow([subJson, new Date().toISOString()]);
+  return { success: true, status: 'saved' };
+}
+
+function getSubscriptions() {
+  var ss = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName('Subscriptions');
+  if (!sheet) return { subscriptions: [] };
+  
+  var data = sheet.getDataRange().getValues();
+  var subs = [];
+  for (var i = 1; i < data.length; i++) {
+    subs.push(data[i][0]);
+  }
+  return { subscriptions: subs };
 }
 
 function updateLeadStatus(body) {

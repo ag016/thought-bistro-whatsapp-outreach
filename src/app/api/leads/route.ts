@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { triggerServerPush } from '@/lib/notifications';
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const GOOGLE_API_KEY  = process.env.GOOGLE_API_KEY;
@@ -143,6 +144,25 @@ export async function POST(req: Request) {
         }),
         redirect: 'follow',
       });
+
+      // TRIGGER SERVER PUSH for manual leads
+      try {
+        const subRes = await fetch(`${APPS_SCRIPT_URL}?action=getSubscriptions&secret=${WEBHOOK_SECRET}`);
+        const subData = await subRes.json();
+        const subs = subData.subscriptions || [];
+        
+        if (subs.length > 0) {
+          await triggerServerPush({
+            title: '🎉 New Lead Arrived!',
+            body: `${newLead.full_name} was added manually.`,
+            url: `/leads/${manualId}?tab=all`,
+            waLink: `https://wa.me/${newLead.phone_number.replace(/\D/g, '')}`
+          }, subs);
+        }
+      } catch (pushErr) {
+        console.error('Manual lead push failed:', pushErr);
+      }
+
     } catch {
       // Non-fatal — return lead to client anyway; sheet sync may lag
     }
