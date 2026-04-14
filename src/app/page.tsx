@@ -307,7 +307,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     registerSW();
   }, []);
 
-  // Notification Logic - Check for changes
+  // Notification Logic - Robust implementation to prevent browser crashes
   useEffect(() => {
     async function checkNotifications() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
@@ -333,11 +333,12 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
           });
         }
 
-        // 1. Detect New Leads
+        // 1. NEW LEADS: Check if any lead in the current list hasn't been notified yet
         const knownLeadIds = JSON.parse(localStorage.getItem('notified_leads') || '[]');
         const newLeads = leads.filter(l => !knownLeadIds.includes(l.id));
         
         if (newLeads.length > 0) {
+          // Notify only the most recent new lead to avoid flooding
           const latestLead = newLeads[0];
           await triggerPush({
             title: '🎉 New Lead Arrived!',
@@ -346,14 +347,19 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             waLink: generateWhatsAppLink(latestLead.phone_number, `Hi ${latestLead.full_name}, welcome!`)
           }, subscription);
           
+          // Update local store immediately to prevent re-triggering
           localStorage.setItem('notified_leads', JSON.stringify([...knownLeadIds, ...newLeads.map(l => l.id)]));
         }
 
-        // 2. Detect Newly Due Messages
+        // 2. DUE MESSAGES: Check for leads that just transitioned to "Due"
         const notifiedSteps = JSON.parse(localStorage.getItem('notified_steps') || '{}');
-        const newlyDue = dueLeads.filter(l => (notifiedSteps[l.id] || -1) < l.current_step);
+        const newlyDue = dueLeads.filter(l => {
+          const lastNotifiedStep = notifiedSteps[l.id] ?? -1;
+          return l.current_step > lastNotifiedStep;
+        });
 
         if (newlyDue.length > 0) {
+          // Notify only the most urgent lead to prevent server flood
           const dueLead = newlyDue[0];
           await triggerPush({
             title: '⏰ Follow-up Due',
@@ -367,28 +373,35 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             ))
           }, subscription);
 
+          // Mark as notified for this specific step
           const updatedSteps = { ...notifiedSteps, [dueLead.id]: dueLead.current_step };
           localStorage.setItem('notified_steps', JSON.stringify(updatedSteps));
         }
 
       } catch (e) {
-        console.error('Notification check error:', e);
+        console.error('Robust Notification error:', e);
       }
     }
 
     async function triggerPush(payload: any, subscription: PushSubscription | null) {
       if (!subscription) return;
-      await fetch('/api/push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscriptions: [subscription],
-          notifications: [payload]
-        })
-      });
+      try {
+        await fetch('/api/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscriptions: [subscription],
+            notifications: [payload]
+          })
+        });
+      } catch (e) {
+        console.error('Push trigger failed:', e);
+      }
     }
 
-    checkNotifications();
+    // Throttle the check to avoid hammering the CPU/Server every render
+    const timeoutId = setTimeout(checkNotifications, 2000);
+    return () => clearTimeout(timeoutId);
   }, [leads, dueLeads]);
 
   const prevDueCount = useRef(dueLeads.length);

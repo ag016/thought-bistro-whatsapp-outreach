@@ -96,13 +96,17 @@ export const NURTURE_SEQUENCE: NurtureStep[] = [
 export function calculateIsDue(lead: { status: string; current_step: number; created_at: string; last_sent_at: string | null; metadata?: { lead_status?: string } }): boolean {
   if (lead.status !== 'active' || lead.current_step >= NURTURE_SEQUENCE.length) return false;
   if (lead.metadata?.lead_status === 'Not Qualified') return false;
+  
   const currentStep = NURTURE_SEQUENCE[lead.current_step];
-  // For the first message (step 0) use created_at; for subsequent steps use last_sent_at
   const baseline = lead.current_step === 0 || !lead.last_sent_at
-    ? new Date(lead.created_at)
-    : new Date(lead.last_sent_at);
-  const daysSinceBaseline = Math.ceil((Date.now() - baseline.getTime()) / (1000 * 60 * 60 * 24));
-  return daysSinceBaseline >= currentStep.day_offset;
+    ? new Date(lead.created_at).getTime()
+    : new Date(lead.last_sent_at).getTime();
+    
+  const offsetMs = currentStep.day_offset * 24 * 60 * 60 * 1000;
+  
+  // Use absolute timestamp comparison for precision.
+  // A lead is due only if CURRENT time is >= (baseline + offset)
+  return Date.now() >= (baseline + offsetMs);
 }
 
 export function getDaysUntilDue(lead: { current_step: number; created_at: string; last_sent_at: string | null }): number {
