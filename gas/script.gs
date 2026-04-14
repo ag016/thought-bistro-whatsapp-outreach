@@ -272,17 +272,16 @@ function syncToLeadsTab(leadId, nurtureData) {
   if (!sheet || sheet.getLastRow() < 2) return;
 
   var lastCol = sheet.getLastColumn();
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim().toLowerCase(); });
   var idColIdx = headers.indexOf('id');
   if (idColIdx === -1) return;
 
-  // Ensure our extra columns exist
   function ensureCol(name) {
-    var idx = headers.indexOf(name);
+    var idx = headers.indexOf(name.toLowerCase());
     if (idx === -1) {
       lastCol++;
       sheet.getRange(1, lastCol).setValue(name);
-      headers.push(name);
+      headers.push(name.toLowerCase());
       idx = headers.length - 1;
     }
     return idx;
@@ -291,8 +290,8 @@ function syncToLeadsTab(leadId, nurtureData) {
   var stepColIdx   = ensureCol('nurture_step');
   var statusColIdx = ensureCol('nurture_status');
   var lastWaColIdx = ensureCol('last_wa_sent');
+  var nickColIdx   = ensureCol('nickname');
 
-  // Find the lead row by id
   var ids = sheet.getRange(2, idColIdx + 1, sheet.getLastRow() - 1, 1).getValues();
   for (var i = 0; i < ids.length; i++) {
     if (String(ids[i][0]).trim() === leadId) {
@@ -300,6 +299,7 @@ function syncToLeadsTab(leadId, nurtureData) {
       if (nurtureData.currentStep !== undefined) sheet.getRange(dataRow, stepColIdx + 1).setValue(nurtureData.currentStep);
       if (nurtureData.status)                    sheet.getRange(dataRow, statusColIdx + 1).setValue(nurtureData.status);
       if (nurtureData.lastSentAt)                sheet.getRange(dataRow, lastWaColIdx + 1).setValue(nurtureData.lastSentAt);
+      if (nurtureData.nickname)                  sheet.getRange(dataRow, nickColIdx + 1).setValue(nurtureData.nickname);
       break;
     }
   }
