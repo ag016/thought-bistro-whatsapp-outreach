@@ -35,6 +35,11 @@ export default function MessageBubble({
   // Track whether WA was opened (but message not yet confirmed as sent)
   const [waOpened, setWaOpened] = useState(false);
 
+  // Sync local text state when the personalized message text prop changes
+  useEffect(() => {
+    setText(messageText);
+  }, [messageText]);
+
   const displayTitle = title || (stepNumber ? `Message ${stepNumber}` : 'Template');
 
   const handleOpenWhatsApp = () => {
