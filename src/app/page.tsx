@@ -109,14 +109,19 @@ function formatDate(str: string) {
 }
 
 function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
+  try {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  } catch (e) {
+    console.error('Base64 decoding failed:', e);
+    throw new Error('Invalid VAPID public key format');
   }
-  return outputArray;
 }
 
 // ── Add Lead Modal ─────────────────────────────────────────────────────────────
@@ -405,6 +410,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
   }, [leads, dueLeads]);
 
   const handleEnableNotifications = async () => {
+    if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       alert('Notifications are not supported in this browser.');
       return;
@@ -417,26 +423,35 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
         return;
       }
 
+      // Use the existing registration if available, otherwise wait for ready
       const registration = await navigator.serviceWorker.ready;
+      if (!registration) {
+        throw new Error('Service worker registration not available');
+      }
+
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      
       if (!publicKey) {
         console.error('NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing');
         alert('Push notification configuration is incomplete (Public Key missing).');
         return;
       }
 
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      });
+      try {
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
 
-      console.log('Subscribed!', subscription);
-      setIsSubscribed(true);
-      setOpen(false);
-    } catch (e) {
-      console.error('Subscription failed', e);
-      alert('Failed to enable push notifications.');
+        console.log('Subscribed!', subscription);
+        setIsSubscribed(true);
+        setOpen(false);
+      } catch (subError) {
+        console.error('PushManager.subscribe failed:', subError);
+        throw new Error('Failed to subscribe to push service');
+      }
+    } catch (e: any) {
+      console.error('Enable Notifications Error:', e);
+      alert(e.message || 'An unexpected error occurred while enabling notifications.');
     }
   };
 
