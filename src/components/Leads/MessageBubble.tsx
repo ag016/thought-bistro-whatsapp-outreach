@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, MouseEvent } from 'react';
 import Timer from '@/components/UI/Timer';
 
 interface MessageBubbleProps {
@@ -46,7 +46,7 @@ export default function MessageBubble({
     setWaOpened(true);
   };
 
-  const handleMarkSent = (e: React.MouseEvent) => {
+  const handleMarkSent = (e: MouseEvent) => {
     e.stopPropagation();
     if (onMarkSent) onMarkSent(stepNumber);
     setWaOpened(false);

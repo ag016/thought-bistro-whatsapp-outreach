@@ -442,7 +442,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
           alignItems: 'center',
         }}
       >
-        🔔
+        {isSubscribed ? '🔔' : '🔕'}
         {unreadDue.length > 0 && (
           <span style={{
             position: 'absolute',
@@ -478,7 +478,16 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-color)' }}>
               {unreadDue.length === 0 ? '🎉 All caught up!' : `${unreadDue.length} unread`}
             </span>
-            {unreadDue.length > 0 && (
+            {!isSubscribed && (
+              <button
+                onClick={handleEnableNotifications}
+                className="transition-enterprise"
+                style={{ background: 'var(--accent-color)', color: 'var(--bg-color)', fontSize: 10, fontWeight: 700, cursor: 'pointer, borderRadius: 8, padding: '4px 8px' }}
+              >
+                Enable Push 🔔
+              </button>
+            )}
+            {unreadDue.length > 0 && isSubscribed && (
               <button
                 onClick={clearAll}
                 style={{ background: 'none', border: 'none', color: 'var(--text-color)', opacity: 0.4, fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}
