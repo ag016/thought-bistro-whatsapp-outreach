@@ -465,22 +465,26 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
 
   const prevDueCount = useRef(dueLeads.length);
   useEffect(() => {
-    if (
-      dueLeads.length > prevDueCount.current &&
-      typeof window !== 'undefined' &&
-      'Notification' in window &&
-      Notification.permission === 'granted'
-    ) {
-      const newest = dueLeads[0];
-      const n = new Notification('Bistro CRM — Follow-up Due', {
-        body: `${newest.full_name} is due for message ${newest.current_step + 1}`,
-        icon: 'https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png',
-      });
-      n.onclick = () => {
-        window.focus();
-        router.push(`/leads/${newest.id}?tab=due`);
-        acknowledge(newest.id, newest.current_step);
-      };
+    if (dueLeads.length > prevDueCount.current && typeof window !== 'undefined') {
+      try {
+        if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+          const newest = dueLeads[0];
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification('Bistro CRM — Follow-up Due', {
+              body: `${newest.full_name} is due for message ${newest.current_step + 1}`,
+              icon: 'https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png',
+              data: {
+                url: `/leads/${newest.id}?tab=due`
+              }
+            });
+            // We can't easily capture 'click' on local showNotification from main thread 
+            // but our sw.js already handles notificationclick by redirecting to data.url
+            acknowledge(newest.id, newest.current_step);
+          }).catch(err => console.error('Local notification failed:', err));
+        }
+      } catch (e) {
+        console.error('Core notification system error:', e);
+      }
     }
     prevDueCount.current = dueLeads.length;
   }, [dueLeads, router, acknowledge]);
