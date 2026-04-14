@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Bistro CRM — Lead Machine',
   description: 'WhatsApp nurture dashboard for clinic leads',
   icons: {
-    icon: 'https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png',
+    icon: 'https://d1yei2z3i6k35z.cloudfront.net/10516146/675b64cfe8df1_Logo.jpeg',
   },
   manifest: '/manifest.json',
 };
