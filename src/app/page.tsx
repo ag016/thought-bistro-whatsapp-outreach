@@ -378,7 +378,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             title: '⏰ Follow-up Due',
             body: `${dueLead.full_name} is due for message ${dueLead.current_step + 1}`,
             url: `/leads/${dueLead.id}?tab=due`,
-            waLink: generateWhatsAppLink(dueHn_url = personalizeMessage(
+            waLink: generateWhatsAppLink(dueLead.phone_number, personalizeMessage(
               NURTURE_SEQUENCE[dueLead.current_step]?.message_text || '', 
               dueLead.full_name, 
               dueLead.metadata.clinic_type, 
