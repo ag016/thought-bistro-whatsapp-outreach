@@ -105,7 +105,7 @@ function updateTag(body) {
   if (!sheet || !leadId || !tagValue) return { error: 'Missing requirements' };
 
   var lastCol = sheet.getLastColumn();
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim().toLowerCase(); });
   
   var idColIdx = headers.indexOf('id');
   if (idColIdx === -1) return { error: 'id column not found' };
@@ -136,7 +136,7 @@ function updateNickname(body) {
   if (!sheet || !leadId || !nicknameValue) return { error: 'Missing requirements' };
 
   var lastCol = sheet.getLastColumn();
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim().toLowerCase(); });
   
   var idColIdx = headers.indexOf('id');
   if (idColIdx === -1) return { error: 'id column not found' };

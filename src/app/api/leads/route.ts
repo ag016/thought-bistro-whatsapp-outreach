@@ -45,10 +45,10 @@ export async function GET() {
     .slice(1)
     .filter((row: string[]) => row.some((cell) => cell?.trim()))
     .map((row: string[], index: number) => {
-      // Map each column header → value
+      // Map each column header → value (case-insensitive)
       const obj: Record<string, string> = {};
       headers.forEach((header: string, i: number) => {
-        obj[header] = row[i]?.toString().trim() ?? '';
+        obj[header.toLowerCase()] = row[i]?.toString().trim() ?? '';
       });
 
       // Parse created_time safely
