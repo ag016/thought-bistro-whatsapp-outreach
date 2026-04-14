@@ -294,15 +294,28 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
   // Filter out acknowledged follow-ups
   const unreadDue = dueLeads.filter(l => (acked?.steps?.[l.id] ?? -1) < l.current_step);
 
-  // PWA Registration and Smart Notifications
+  // PWA Registration - Run ONLY ONCE on mount
   useEffect(() => {
-    async function handleNotifications() {
+    async function registerSW() {
+      if (!('serviceWorker' in navigator)) return;
+      try {
+        await navigator.serviceWorker.register('/sw.js');
+      } catch (e) {
+        console.error('SW registration failed:', e);
+      }
+    }
+    registerSW();
+  }, []);
+
+  // Notification Logic - Check for changes
+  useEffect(() => {
+    async function checkNotifications() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        
-        // Ensure subscription
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) return;
+
         let subscription = await registration.pushManager.getSubscription();
         if (!subscription) {
           const permission = await Notification.requestPermission();
@@ -359,7 +372,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
         }
 
       } catch (e) {
-        console.error('Notification system error:', e);
+        console.error('Notification check error:', e);
       }
     }
 
@@ -375,7 +388,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
       });
     }
 
-    handleNotifications();
+    checkNotifications();
   }, [leads, dueLeads]);
 
   const prevDueCount = useRef(dueLeads.length);
