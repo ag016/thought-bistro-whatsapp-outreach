@@ -18,7 +18,14 @@ function formatDate(str: string | null) {
   try {
     const date = new Date(str);
     if (isNaN(date.getTime())) return str;
-    return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+    return date.toLocaleString('en-IN', { 
+      day: 'numeric', 
+      month: 'short', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: true,
+      timeZone: 'Asia/Kolkata' 
+    });
   } catch {
     return str;
   }
