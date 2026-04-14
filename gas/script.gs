@@ -85,6 +85,8 @@ function doPost(e) {
   var action = body.action || '';
 
   if (action === 'upsertNurture') { return json(upsertNurture(body)); }
+  if (action === 'updateTag')    { return json(updateTag(body)); }
+  if (action === 'updateNickname') { return json(updateNickname(body)); }
   if (action === 'addNote')       { return json(addNote(body)); }
   if (action === 'updateStatus')  { return json(updateLeadStatus(body)); }
   if (action === 'deleteNote')    { return json(deleteNote(body)); }
@@ -92,6 +94,68 @@ function doPost(e) {
   if (action === 'initTabs')      { initSheetTabs(); return json({ success: true }); }
 
   return json({ error: 'Unknown action: ' + action });
+}
+
+function updateTag(body) {
+  var ss    = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(LEADS_TAB);
+  var leadId = String(body.leadId || '').trim();
+  var tagValue = String(body.tag || '').trim();
+  
+  if (!sheet || !leadId || !tagValue) return { error: 'Missing requirements' };
+
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  
+  var idColIdx = headers.indexOf('id');
+  if (idColIdx === -1) return { error: 'id column not found' };
+
+  var tagColIdx = headers.indexOf('internal_tag');
+  if (tagColIdx === -1) {
+    lastCol++;
+    sheet.getRange(1, lastCol).setValue('internal_tag');
+    tagColIdx = lastCol - 1;
+  }
+
+  var ids = sheet.getRange(2, idColIdx + 1, sheet.getLastRow() - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]).trim() === leadId) {
+      sheet.getRange(i + 2, tagColIdx + 1).setValue(tagValue);
+      return { success: true };
+    }
+  }
+  return { error: 'Lead not found' };
+}
+
+function updateNickname(body) {
+  var ss    = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(LEADS_TAB);
+  var leadId = String(body.leadId || '').trim();
+  var nicknameValue = String(body.nickname || '').trim();
+  
+  if (!sheet || !leadId || !nicknameValue) return { error: 'Missing requirements' };
+
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  
+  var idColIdx = headers.indexOf('id');
+  if (idColIdx === -1) return { error: 'id column not found' };
+
+  var nickColIdx = headers.indexOf('nickname');
+  if (nickColIdx === -1) {
+    lastCol++;
+    sheet.getRange(1, lastCol).setValue('nickname');
+    nickColIdx = lastCol - 1;
+  }
+
+  var ids = sheet.getRange(2, idColIdx + 1, sheet.getLastRow() - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]).trim() === leadId) {
+      sheet.getRange(i + 2, nickColIdx + 1).setValue(nicknameValue);
+      return { success: true };
+    }
+  }
+  return { error: 'Lead not found' };
 }
 
 function updateLeadStatus(body) {
@@ -482,6 +546,7 @@ function addManualLead(body) {
   }
 
   setVal('id',           body.sheet_id     || '');
+  setVal('nickname',      body.nickname      || '');
   setVal('created_time', body.created_at   || '');
   setVal('full_name',    body.full_name    || '');
   setVal('phone_number', body.phone_number || '');
