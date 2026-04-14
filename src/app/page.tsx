@@ -235,28 +235,23 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [acked, setAcked] = useState<{ steps: Record<string, number> }>({ steps: {} });
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Sync with localStorage ONLY on mount
-  useEffect(() => {
-    if (!mounted || typeof window === 'undefined') return;
+  
+  // Initialize state SYNCHRONOUSLY from localStorage to prevent "flashing" notifications
+  const [acked, setAcked] = useState<{ steps: Record<string, number> }>(() => {
+    if (typeof window === 'undefined') return { steps: {} };
     const saved = localStorage.getItem('acknowledged_notifications');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object' && parsed.steps) {
-          setAcked(parsed);
-        }
+        if (parsed && typeof parsed === 'object' && parsed.steps) return parsed;
       } catch (e) {
         console.error('Failed to parse acknowledged_notifications');
       }
     }
-  }, []);
+    return { steps: {} };
+  });
+  
+  const ref = useRef<HTMLDivElement>(null);
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {
@@ -413,9 +408,9 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     const stepIdx = lead.current_step;
     if (stepIdx >= NURTURE_SEQUENCE.length) return '';
     const step = NURTURE_SEQUENCE[stepIdx];
-    const variant = autoSelectVariant(step.step_number, lead.metadata.lead_quality_desc, step.variants);
+    const variant = autoSelectVariant(step.step_number, lead.metadata?.lead_quality_desc || '', step.variants);
     const base = variant ? variant.text : step.message_text;
-    const text = personalizeMessage(base, lead.full_name, lead.metadata.clinic_type, lead.nickname);
+    const text = personalizeMessage(base, lead.full_name, lead.metadata?.clinic_type || '', lead.nickname);
     return generateWhatsAppLink(lead.phone_number, text);
   };
 
