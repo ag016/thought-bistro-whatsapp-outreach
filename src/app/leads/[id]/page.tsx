@@ -462,7 +462,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
       </div>
 
       {/* --- Mobile Tab Navigation --- */}
-      <div className="mobile-tab-nav" style={{ padding: '16px 24px', gap: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+      <div className="mobile-tab-nav" style={{ padding: '16px 24px', display: 'flex', gap: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
         {['info', 'timeline', 'actions'].map(tab => (
           <button
             key={tab}
@@ -472,11 +472,12 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
               borderRadius: 12,
               background: mobileTab === tab ? 'var(--accent-color)' : 'var(--surface-color)',
               color: mobileTab === tab ? 'var(--bg-color)' : 'var(--text-color)',
-              border: '1px solid var(--border-color)',
+              border: mobileTab === tab ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
               fontSize: 13,
               fontWeight: 700,
               cursor: 'pointer',
-              textTransform: 'capitalize'
+              textTransform: 'capitalize',
+              transition: 'all 0.2s ease'
             }}
           >
             {tab}
