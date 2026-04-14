@@ -349,9 +349,12 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
         }
         if (!subscription) return;
 
-        // 1. NEW LEADS: Trigger ONLY if the lead wasn't in the baseline when app opened
+        // 1. NEW LEADS: Trigger ONLY if the lead wasn't in the baseline when app opened AND not already notified
         const knownLeadIds = JSON.parse(localStorage.getItem('notified_leads') || '[]');
-        const newLeads = leads.filter(l => !knownLeadIds.includes(l.id));
+        const newLeads = leads.filter(l => 
+          !sessionBaseline.current.leads.has(l.id) && 
+          !knownLeadIds.includes(l.id)
+        );
         
         if (newLeads.length > 0) {
           const latestLead = newLeads[0];
@@ -362,14 +365,17 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             waLink: generateWhatsAppLink(latestLead.phone_number, `Hi ${latestLead.full_name}, welcome!`)
           }, subscription);
           
-          localStorage.setItem('notified_leads', JSON.stringify([...knownLeadIds, ...newLeads.map(l => l.id)]));
+          // Update both local storage and in-memory baseline immediately
+          localStorage.setItem('notified_leads', JSON.stringify([...knownLeadIds, latestLead.id]));
+          sessionBaseline.current.leads.add(latestLead.id);
         }
 
-        // 2. DUE MESSAGES: Trigger ONLY if a lead just transitioned to "Due" relative to baseline
+        // 2. DUE MESSAGES: Trigger ONLY if a lead just transitioned to "Due" relative to baseline AND not already notified
         const notifiedSteps = JSON.parse(localStorage.getItem('notified_steps') || '{}');
         const newlyDue = dueLeads.filter(l => {
           const baselineStep = sessionBaseline.current.steps[l.id] ?? -1;
-          return l.current_step > baselineStep;
+          const lastNotified = notifiedSteps[l.id] ?? -1;
+          return l.current_step > baselineStep && l.current_step > lastNotified;
         });
 
         if (newlyDue.length > 0) {
@@ -386,7 +392,9 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             ))
           }, subscription);
 
+          // Update both local storage and in-memory baseline immediately
           localStorage.setItem('notified_steps', JSON.stringify({ ...notifiedSteps, [dueLead.id]: dueLead.current_step }));
+          sessionBaseline.current.steps[dueLead.id] = dueLead.current_step;
         }
 
       } catch (e) {
