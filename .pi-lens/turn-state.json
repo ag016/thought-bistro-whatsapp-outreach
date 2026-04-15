@@ -4,11 +4,11 @@
       "modifiedRanges": [
         {
           "start": 1,
-          "end": 763
+          "end": 1496
         }
       ],
       "importsChanged": true,
-      "lastEdit": "2026-04-13T13:07:40.843Z"
+      "lastEdit": "2026-04-15T10:40:28.447Z"
     },
     "project/src/app/settings/page.tsx": {
       "modifiedRanges": [
@@ -43,10 +43,18 @@
         {
           "start": 1,
           "end": 521
+        },
+        {
+          "start": 694,
+          "end": 702
+        },
+        {
+          "start": 704,
+          "end": 704
         }
       ],
       "importsChanged": true,
-      "lastEdit": "2026-04-14T18:28:14.802Z"
+      "lastEdit": "2026-04-15T12:12:06.867Z"
     },
     "project/src/app/api/calendar/route.ts": {
       "modifiedRanges": [
@@ -213,10 +221,18 @@
         {
           "start": 66,
           "end": 66
+        },
+        {
+          "start": 78,
+          "end": 80
+        },
+        {
+          "start": 85,
+          "end": 85
         }
       ],
       "importsChanged": true,
-      "lastEdit": "2026-04-14T17:44:18.534Z"
+      "lastEdit": "2026-04-15T09:57:27.904Z"
     },
     "project/src/lib/notifications.ts": {
       "modifiedRanges": [
@@ -245,5 +261,5 @@
   },
   "turnCycles": 0,
   "maxCycles": 3,
-  "lastUpdated": "2026-04-14T18:28:14.802Z"
+  "lastUpdated": "2026-04-15T12:12:06.867Z"
 }

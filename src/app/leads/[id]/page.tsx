@@ -242,6 +242,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
   const [savingNickname, setSavingNickname] = useState(false);
+  const [showPastApts, setShowPastApts] = useState(false);
   const [mobileTab, setMobileTab] = useState<"info" | "timeline" | "actions">(
     "info",
   );
@@ -546,7 +547,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
   const daysUntil = getDaysUntilDue(lead);
   const m = lead.metadata;
   // ── Appointment Extraction ──
-  const appointments = notes
+  const appointmentsRaw = notes
     .filter(n => isAppointmentNote(n.note_text))
     .map(n => {
       const info = parseAppointmentInfo(n.note_text)!;
@@ -554,6 +555,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
       const isValid = !isNaN(aptDate.getTime());
       return {
         ...info,
+        dateObj: aptDate,
         formattedDate: isValid
           ? aptDate.toLocaleString("en-IN", {
               weekday: "short",
@@ -574,6 +576,9 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
           : "",
       };
     });
+
+  const upcomingAppointments = appointmentsRaw.filter(apt => apt.dateObj > new Date());
+  const pastAppointments = appointmentsRaw.filter(apt => apt.dateObj <= new Date());
 
   const displayNotes = notes.filter((n) => !isAppointmentNote(n.note_text));
 
@@ -1032,7 +1037,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
             </div>
 
             {/* Booked Appointments — Moved to Left Sidebar below Lead Info */}
-            {appointments.length > 0 && (
+            {(upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
               <div
                 className="pane-card"
                 style={{
@@ -1042,141 +1047,238 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                   padding: 16,
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "var(--info-color)",
-                    letterSpacing: "0.08em",
-                    marginBottom: 14,
-                  }}
-                >
-                  📅 UPCOMING CALLS
-                </div>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                  {appointments.map((apt, i) => (
+                {upcomingAppointments.length > 0 && (
+                  <div style={{ marginBottom: 20 }}>
                     <div
-                      key={i}
                       style={{
-                        borderRadius: 16,
-                        padding: "16px",
-                        background: "var(--surface-color)",
-                        border: "1px solid var(--border-color)",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "var(--info-color)",
+                        letterSpacing: "0.08em",
+                        marginBottom: 14,
+                      }}
+                    >
+                      📅 UPCOMING CALLS
+                    </div>
+                    <div
+                      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                    >
+                      {upcomingAppointments.map((apt, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            borderRadius: 16,
+                            padding: "16px",
+                            background: "var(--surface-color)",
+                            border: "1px solid var(--border-color)",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "start",
+                              marginBottom: 8,
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: 16,
+                                  fontWeight: 800,
+                                  color: "var(--text-color)",
+                                }}
+                                >
+                                {apt.formattedDate}
+                              </div>
+                              {apt.title && (
+                                <div
+                                  style={{
+                                    fontSize: 13,
+                                    color: "var(--info-color)",
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {apt.title}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ background: 'var(--info-color)', color: 'var(--bg-color)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 800 }}>CONFIRMED</div>
+                          </div>
+
+                          {apt.bookerEmail && (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "var(--text-color)",
+                                opacity: 0.5,
+                                marginBottom: 12,
+                              }}
+                            >
+                              Host:{" "}
+                              <span
+                                style={{ color: "var(--text-color)", opacity: 0.9 }}
+                                >
+                                {apt.bookerEmail}
+                              </span>
+                            </div>
+                          )}
+
+                          <div
+                            style={{
+                              borderTop: "1px solid var(--border-color)",
+                              paddingTop: 12,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                color: "var(--text-color)",
+                                opacity: 0.4,
+                                marginBottom: 8,
+                              }}
+                            >
+                              Send Reminders
+                            </div>
+                            <div
+                              style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+                            >
+                              {APPOINTMENT_CONFIRMATIONS.map((conf) => {
+                                const msg = conf.buildMessage(
+                                  lead.full_name,
+                                  apt.timeOnlyStr || apt.formattedDate,
+                                  lead.nickname,
+                                );
+                                const waLink = generateWhatsAppLink(
+                                  lead.phone_number,
+                                  msg,
+                                );
+                                return (
+                                  <a
+                                    key={conf.id}
+                                    href={waLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="transition-enterprise"
+                                    style={{
+                                      fontSize: 10.5,
+                                      fontWeight: 700,
+                                      padding: "6px 10px",
+                                      borderRadius: 8,
+                                      background: "var(--info-color)",
+                                      color: "var(--bg-color)",
+                                      textDecoration: "none",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    {conf.label} ↗
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {pastAppointments.length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setShowPastApts(!showPastApts)}
+                      className="transition-enterprise"
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '8px 0',
+                        marginBottom: showPastApts ? 12 : 0,
                       }}
                     >
                       <div
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "start",
-                          marginBottom: 8,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "var(--text-color)",
+                          opacity: 0.6,
+                          letterSpacing: "0.08em",
                         }}
                       >
-                        <div>
+                        🕒 PAST BOOKINGS ({pastAppointments.length})
+                      </div>
+                      <span style={{ fontSize: 12, transition: 'transform 0.2s', transform: showPastApts ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                    </button>
+                    {showPastApts && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {pastAppointments.map((apt, i) => (
                           <div
+                            key={i}
                             style={{
-                              fontSize: 16,
-                              fontWeight: 800,
-                              color: "var(--text-color)",
+                              borderRadius: 16,
+                              padding: "12px",
+                              background: "var(--surface-color)",
+                              border: "1px solid var(--border-color)",
+                              opacity: 0.6,
+                              filter: 'grayscale(1)',
                             }}
                           >
-                            {apt.formattedDate}
-                          </div>
-                          {apt.title && (
                             <div
                               style={{
-                                fontSize: 13,
-                                color: "var(--info-color)",
-                                fontWeight: 600,
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "start",
+                                marginBottom: 4,
                               }}
                             >
-                              {apt.title}
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    color: "var(--text-color)",
+                                  }}
+                                >
+                                  {apt.formattedDate}
+                                </div>
+                                {apt.title && (
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      color: "var(--info-color)",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {apt.title}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                        <div style={{ background: 'var(--info-color)', color: 'var(--bg-color)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 800 }}>CONFIRMED</div>
-                      </div>
-
-                      {apt.bookerEmail && (
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: "var(--text-color)",
-                            opacity: 0.5,
-                            marginBottom: 12,
-                          }}
-                        >
-                          Host:{" "}
-                          <span
-                            style={{ color: "var(--text-color)", opacity: 0.9 }}
-                          >
-                            {apt.bookerEmail}
-                          </span>
-                        </div>
-                      )}
-
-                      <div
-                        style={{
-                          borderTop: "1px solid var(--border-color)",
-                          paddingTop: 12,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            color: "var(--text-color)",
-                            opacity: 0.4,
-                            marginBottom: 8,
-                          }}
-                        >
-                          Send Reminders
-                        </div>
-                        <div
-                          style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
-                        >
-                          {APPOINTMENT_CONFIRMATIONS.map((conf) => {
-                            const msg = conf.buildMessage(
-                              lead.full_name,
-                              apt.timeOnlyStr || apt.formattedDate,
-                              lead.nickname,
-                            );
-                            const waLink = generateWhatsAppLink(
-                              lead.phone_number,
-                              msg,
-                            );
-                            return (
-                              <a
-                                key={conf.id}
-                                href={waLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-enterprise"
+                            {apt.bookerEmail && (
+                              <div
                                 style={{
-                                  fontSize: 10.5,
-                                  fontWeight: 700,
-                                  padding: "6px 10px",
-                                  borderRadius: 8,
-                                  background: "var(--info-color)",
-                                  color: "var(--bg-color)",
-                                  textDecoration: "none",
-                                  cursor: "pointer",
+                                  fontSize: 11,
+                                  color: "var(--text-color)",
+                                  opacity: 0.5,
                                 }}
-                              >
-                                {conf.label} ↗
-                              </a>
-                            );
-                          })}
-                        </div>
+                                >
+                                Host: {apt.bookerEmail}
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

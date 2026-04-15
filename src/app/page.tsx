@@ -1,18 +1,25 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { calculateIsDue, generateWhatsAppLink, NURTURE_SEQUENCE, personalizeMessage, autoSelectVariant, autoExtractNickname } from '@/lib/nurture';
-import { useSession, signIn } from 'next-auth/react';
-import ViewSwitcher from '@/components/Dashboard/ViewSwitcher';
-import KanbanBoard from '@/components/Dashboard/KanbanBoard';
-import LeadList from '@/components/Dashboard/LeadList';
-import { Skeleton } from '@/components/UI/Skeleton';
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  calculateIsDue,
+  generateWhatsAppLink,
+  NURTURE_SEQUENCE,
+  personalizeMessage,
+  autoSelectVariant,
+  autoExtractNickname,
+} from "@/lib/nurture";
+import { useSession, signIn } from "next-auth/react";
+import ViewSwitcher from "@/components/Dashboard/ViewSwitcher";
+import KanbanBoard from "@/components/Dashboard/KanbanBoard";
+import LeadList from "@/components/Dashboard/LeadList";
+import { Skeleton } from "@/components/UI/Skeleton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type LeadStatus = 'active' | 'paused' | 'converted' | 'completed';
-type MainFilter = 'all' | 'due' | 'active' | 'paused';
+type LeadStatus = "active" | "paused" | "converted" | "completed";
+type MainFilter = "all" | "due" | "active" | "paused";
 
 interface Lead {
   id: string;
@@ -46,7 +53,7 @@ interface SheetLead {
   company_name: string;
   created_at: string;
   internal_tag?: string;
-  metadata: Lead['metadata'];
+  metadata: Lead["metadata"];
 }
 
 interface NurtureEntry {
@@ -60,23 +67,26 @@ type NurtureMap = Record<string, NurtureEntry>;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CORRECT_PIN = '132103';
-const AUTH_KEY    = 'tb_auth_session';
-const TAB_KEY     = 'tb_last_tab'; // persists which tab the user was on
-const LOCAL_LEADS_KEY = 'tb_manual_leads'; 
+const CORRECT_PIN = "132103";
+const AUTH_KEY = "tb_auth_session";
+const TAB_KEY = "tb_last_tab"; // persists which tab the user was on
+const FILTER_KEY = "tb_last_filters"; // persists active filters
+const VIEW_KEY = "tb_last_view"; // persists list vs board view
+const LOCAL_LEADS_KEY = "tb_manual_leads";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
   return sheetLeads
-    .filter(sl => sl.full_name || sl.phone_number)
-    .map(sl => {
+    .filter((sl) => sl.full_name || sl.phone_number)
+    .map((sl) => {
       const nurture = nurtureMap[sl.sheet_id];
-      let currentStep = parseInt(String(nurture?.current_step ?? '0'));
+      let currentStep = parseInt(String(nurture?.current_step ?? "0"));
       if (isNaN(currentStep)) currentStep = 0;
-      
+
       // Auto-extract nickname if missing in nurture data
-      const nickname = (nurture as any)?.nickname || autoExtractNickname(sl.full_name);
+      const nickname =
+        (nurture as any)?.nickname || autoExtractNickname(sl.full_name);
 
       return {
         id: sl.sheet_id,
@@ -85,11 +95,11 @@ function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
         phone_number: sl.phone_number,
         company_name: sl.company_name,
         created_at: sl.created_at,
-        internal_tag: sl.internal_tag || '',
+        internal_tag: sl.internal_tag || "",
         nickname: nickname,
         metadata: sl.metadata,
         current_step: currentStep,
-        status: nurture?.status || 'active',
+        status: nurture?.status || "active",
         last_sent_at: nurture?.last_sent_at || null,
       } as Lead;
     })
@@ -97,21 +107,42 @@ function mergeLeads(sheetLeads: SheetLead[], nurtureMap: NurtureMap): Lead[] {
 }
 
 function formatDate(str: string) {
-  if (!str) return '—';
-  const parts = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (!str) return "—";
+  const parts = str.match(
+    /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/,
+  );
   if (parts) {
     const [, d, m, y, h, min, s] = parts;
     const date = new Date(`${y}-${m}-${d}T${h}:${min}:${s}`);
-    return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+    return date.toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
   }
-  try { return new Date(str).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }); }
-  catch { return str; }
+  try {
+    return new Date(str).toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
+  } catch {
+    return str;
+  }
 }
 
 function urlBase64ToUint8Array(base64String: string) {
   try {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; ++i) {
@@ -119,44 +150,56 @@ function urlBase64ToUint8Array(base64String: string) {
     }
     return outputArray;
   } catch (e) {
-    console.error('Base64 decoding failed:', e);
-    throw new Error('Invalid VAPID public key format');
+    console.error("Base64 decoding failed:", e);
+    throw new Error("Invalid VAPID public key format");
   }
 }
 
 // ── Add Lead Modal ─────────────────────────────────────────────────────────────
 
-function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: Lead) => void }) {
+function AddLeadModal({
+  onClose,
+  onAdd,
+}: {
+  onClose: () => void;
+  onAdd: (lead: Lead) => void;
+}) {
   const [form, setForm] = useState({
-    full_name: '',
-    phone_number: '',
-    company_name: '',
-    clinic_type: '',
-    nickname: '',
-    lead_quality_desc: '',
+    full_name: "",
+    phone_number: "",
+    company_name: "",
+    clinic_type: "",
+    nickname: "",
+    lead_quality_desc: "",
   });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }));
+  const set =
+    (k: keyof typeof form) =>
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >,
+    ) =>
+      setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.full_name && !form.phone_number) {
-      setError('Full name or phone number is required.');
+      setError("Full name or phone number is required.");
       return;
     }
     setSaving(true);
-    setError('');
+    setError("");
     try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create lead');
+      if (!res.ok) throw new Error(data.error || "Failed to create lead");
       const newLead: Lead = {
         id: data.lead.sheet_id,
         sheet_id: data.lead.sheet_id,
@@ -164,11 +207,11 @@ function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: L
         phone_number: data.lead.phone_number,
         company_name: data.lead.company_name,
         created_at: data.lead.created_at,
-        internal_tag: '',
+        internal_tag: "",
         nickname: form.nickname,
         metadata: data.lead.metadata,
         current_step: 0,
-        status: 'active',
+        status: "active",
         last_sent_at: null,
       };
       onAdd(newLead);
@@ -182,51 +225,224 @@ function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: L
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        background: "rgba(0,0,0,0.7)",
+        backdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         padding: 24,
       }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         className="pane-card"
-        style={{ width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          position: "relative",
+        }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-color)' }}>Add Lead Manually</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-color)', fontSize: 22, cursor: 'pointer', opacity: 0.5 }}>×</button>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: "var(--text-color)",
+            }}
+          >
+            Add Lead Manually
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-color)",
+              fontSize: 22,
+              cursor: "pointer",
+              opacity: 0.5,
+            }}
+          >
+            ×
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        >
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-color)', opacity: 0.5, display: 'block', marginBottom: 6 }}>FULL NAME *</label>
-            <input type="text" value={form.full_name} onChange={set('full_name')} className="input-field" style={{ width: '100%' }} placeholder="Dr. Rajesh Kumar" />
+            <label
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--text-color)",
+                opacity: 0.5,
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              FULL NAME *
+            </label>
+            <input
+              type="text"
+              value={form.full_name}
+              onChange={set("full_name")}
+              className="input-field"
+              style={{ width: "100%" }}
+              placeholder="Dr. Rajesh Kumar"
+            />
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-color)', opacity: 0.5, display: 'block', marginBottom: 6 }}>ADDRESSED NAME (NICKNAME)</label>
-            <input type="text" value={form.nickname} onChange={set('nickname')} className="input-field" style={{ width: '100%' }} placeholder="e.g. Dr. Rajesh (used in all messages)" />
-            <div style={{ fontSize: 10, color: 'var(--text-color)', opacity: 0.35, marginTop: 4 }}>Prevents "Dr. Dr." issue in outgoing messages</div>
+            <label
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--text-color)",
+                opacity: 0.5,
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              ADDRESSED NAME (NICKNAME)
+            </label>
+            <input
+              type="text"
+              value={form.nickname}
+              onChange={set("nickname")}
+              className="input-field"
+              style={{ width: "100%" }}
+              placeholder="e.g. Dr. Rajesh (used in all messages)"
+            />
+            <div
+              style={{
+                fontSize: 10,
+                color: "var(--text-color)",
+                opacity: 0.35,
+                marginTop: 4,
+              }}
+            >
+              Prevents "Dr. Dr." issue in outgoing messages
+            </div>
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-color)', opacity: 0.5, display: 'block', marginBottom: 6 }}>PHONE NUMBER *</label>
-            <input type="tel" value={form.phone_number} onChange={set('phone_number')} className="input-field" style={{ width: '100%' }} placeholder="+91 98765 43210" />
+            <label
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--text-color)",
+                opacity: 0.5,
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              PHONE NUMBER *
+            </label>
+            <input
+              type="tel"
+              value={form.phone_number}
+              onChange={set("phone_number")}
+              className="input-field"
+              style={{ width: "100%" }}
+              placeholder="+91 98765 43210"
+            />
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-color)', opacity: 0.5, display: 'block', marginBottom: 6 }}>CLINIC / COMPANY NAME</label>
-            <input type="text" value={form.company_name} onChange={set('company_name')} className="input-field" style={{ width: '100%' }} placeholder="Wellness Clinic Pvt Ltd" />
+            <label
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--text-color)",
+                opacity: 0.5,
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              CLINIC / COMPANY NAME
+            </label>
+            <input
+              type="text"
+              value={form.company_name}
+              onChange={set("company_name")}
+              className="input-field"
+              style={{ width: "100%" }}
+              placeholder="Wellness Clinic Pvt Ltd"
+            />
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-color)', opacity: 0.5, display: 'block', marginBottom: 6 }}>CLINIC TYPE</label>
-            <input type="text" value={form.clinic_type} onChange={set('clinic_type')} className="input-field" style={{ width: '100%' }} placeholder="Dermatology, Obesity, Dental…" />
+            <label
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--text-color)",
+                opacity: 0.5,
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              CLINIC TYPE
+            </label>
+            <input
+              type="text"
+              value={form.clinic_type}
+              onChange={set("clinic_type")}
+              className="input-field"
+              style={{ width: "100%" }}
+              placeholder="Dermatology, Obesity, Dental…"
+            />
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-color)', opacity: 0.5, display: 'block', marginBottom: 6 }}>LEAD SITUATION / PROBLEM</label>
-            <textarea value={form.lead_quality_desc} onChange={set('lead_quality_desc')} className="input-field" style={{ width: '100%', resize: 'vertical', minHeight: 60, fontSize: 13 }} placeholder="e.g. Leads don't have budget, don't show up…" />
+            <label
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--text-color)",
+                opacity: 0.5,
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              LEAD SITUATION / PROBLEM
+            </label>
+            <textarea
+              value={form.lead_quality_desc}
+              onChange={set("lead_quality_desc")}
+              className="input-field"
+              style={{
+                width: "100%",
+                resize: "vertical",
+                minHeight: 60,
+                fontSize: 13,
+              }}
+              placeholder="e.g. Leads don't have budget, don't show up…"
+            />
           </div>
 
           {error && (
-            <div style={{ fontSize: 12, color: 'var(--danger-color)', padding: '8px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--danger-color)",
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "rgba(239,68,68,0.1)",
+                border: "1px solid rgba(239,68,68,0.3)",
+              }}
+            >
               {error}
             </div>
           )}
@@ -235,9 +451,9 @@ function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: L
             type="submit"
             disabled={saving}
             className="btn-primary transition-enterprise"
-            style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}
+            style={{ padding: "12px", fontWeight: 700, fontSize: 14 }}
           >
-            {saving ? 'Adding Lead…' : 'Add Lead'}
+            {saving ? "Adding Lead…" : "Add Lead"}
           </button>
         </form>
       </div>
@@ -247,32 +463,40 @@ function AddLeadModal({ onClose, onAdd }: { onClose: () => void; onAdd: (lead: L
 
 // ── Notification Bell ──────────────────────────────────────────────────────────
 
-function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], leads: Lead[], onMarkSent: (id: string) => void }) {
+function NotificationBell({
+  dueLeads,
+  leads,
+  onMarkSent,
+}: {
+  dueLeads: Lead[];
+  leads: Lead[];
+  onMarkSent: (id: string) => void;
+}) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  
+
   const [acked, setAcked] = useState<{ steps: Record<string, number> }>(() => {
-    if (typeof window === 'undefined') return { steps: {} };
-    const saved = localStorage.getItem('acknowledged_notifications');
+    if (typeof window === "undefined") return { steps: {} };
+    const saved = localStorage.getItem("acknowledged_notifications");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object' && parsed.steps) return parsed;
+        if (parsed && typeof parsed === "object" && parsed.steps) return parsed;
       } catch (e) {
-        console.error('Failed to parse acknowledged_notifications');
+        console.error("Failed to parse acknowledged_notifications");
       }
     }
     return { steps: {} };
   });
-  
+
   // ── SESSION BASELINE ─────────────────────────────────────────────────────────
   // This prevents "notification floods" on app launch.
   // We capture the state of leads on mount and only notify for changes AFTER this point.
-  const sessionBaseline = useRef<{ 
-    leads: Set<string>, 
-    steps: Record<string, number> 
+  const sessionBaseline = useRef<{
+    leads: Set<string>;
+    steps: Record<string, number>;
   }>({ leads: new Set(), steps: {} });
 
   const ref = useRef<HTMLDivElement>(null);
@@ -281,29 +505,29 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     setMounted(true);
     // Initialize baseline from the first load of leads
     if (leads.length > 0) {
-      sessionBaseline.current.leads = new Set(leads.map(l => l.id));
-      leads.forEach(l => {
+      sessionBaseline.current.leads = new Set(leads.map((l) => l.id));
+      leads.forEach((l) => {
         sessionBaseline.current.steps[l.id] = l.current_step;
       });
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem('acknowledged_notifications', JSON.stringify(acked));
+    if (typeof window === "undefined") return;
+    localStorage.setItem("acknowledged_notifications", JSON.stringify(acked));
   }, [acked]);
 
   const acknowledge = useCallback((leadId: string, currentStep: number) => {
-    setAcked(prev => ({
+    setAcked((prev) => ({
       ...prev,
-      steps: { ...prev?.steps, [leadId]: currentStep }
+      steps: { ...prev?.steps, [leadId]: currentStep },
     }));
   }, []);
 
   const clearAll = () => {
-    setAcked(prev => {
+    setAcked((prev) => {
       const nextSteps = { ...(prev?.steps || {}) };
-      dueLeads.forEach(l => {
+      dueLeads.forEach((l) => {
         nextSteps[l.id] = l.current_step;
       });
       return { ...prev, steps: nextSteps };
@@ -312,21 +536,24 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const unreadDue = dueLeads.filter(l => (acked?.steps?.[l.id] ?? -1) < l.current_step);
+  const unreadDue = dueLeads.filter(
+    (l) => (acked?.steps?.[l.id] ?? -1) < l.current_step,
+  );
 
   useEffect(() => {
     async function registerSW() {
-      if (!('serviceWorker' in navigator)) return;
+      if (!("serviceWorker" in navigator)) return;
       try {
-        await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.register("/sw.js");
       } catch (e) {
-        console.error('SW registration failed:', e);
+        console.error("SW registration failed:", e);
       }
     }
     registerSW();
@@ -337,7 +564,7 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
     let isMounted = true;
 
     async function checkNotifications() {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
       try {
         const registration = await navigator.serviceWorker.getRegistration();
@@ -350,29 +577,43 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
         if (!subscription) return;
 
         // 1. NEW LEADS: Trigger ONLY if the lead wasn't in the baseline when app opened AND not already notified
-        const knownLeadIds = JSON.parse(localStorage.getItem('notified_leads') || '[]');
-        const newLeads = leads.filter(l => 
-          !sessionBaseline.current.leads.has(l.id) && 
-          !knownLeadIds.includes(l.id)
+        const knownLeadIds = JSON.parse(
+          localStorage.getItem("notified_leads") || "[]",
         );
-        
+        const newLeads = leads.filter(
+          (l) =>
+            !sessionBaseline.current.leads.has(l.id) &&
+            !knownLeadIds.includes(l.id),
+        );
+
         if (newLeads.length > 0) {
           const latestLead = newLeads[0];
-          await triggerPush({
-            title: '🎉 New Lead Arrived!',
-            body: `${latestLead.full_name} just joined the machine.`,
-            url: `/leads/${latestLead.id}?tab=all`,
-            waLink: generateWhatsAppLink(latestLead.phone_number, `Hi ${latestLead.full_name}, welcome!`)
-          }, subscription);
-          
+          await triggerPush(
+            {
+              title: "🎉 New Lead Arrived!",
+              body: `${latestLead.full_name} just joined the machine.`,
+              url: `/leads/${latestLead.id}?tab=all`,
+              waLink: generateWhatsAppLink(
+                latestLead.phone_number,
+                `Hi ${latestLead.full_name}, welcome!`,
+              ),
+            },
+            subscription,
+          );
+
           // Update both local storage and in-memory baseline immediately
-          localStorage.setItem('notified_leads', JSON.stringify([...knownLeadIds, latestLead.id]));
+          localStorage.setItem(
+            "notified_leads",
+            JSON.stringify([...knownLeadIds, latestLead.id]),
+          );
           sessionBaseline.current.leads.add(latestLead.id);
         }
 
         // 2. DUE MESSAGES: Trigger ONLY if a lead just transitioned to "Due" relative to baseline AND not already notified
-        const notifiedSteps = JSON.parse(localStorage.getItem('notified_steps') || '{}');
-        const newlyDue = dueLeads.filter(l => {
+        const notifiedSteps = JSON.parse(
+          localStorage.getItem("notified_steps") || "{}",
+        );
+        const newlyDue = dueLeads.filter((l) => {
           const baselineStep = sessionBaseline.current.steps[l.id] ?? -1;
           const lastNotified = notifiedSteps[l.id] ?? -1;
           return l.current_step > baselineStep && l.current_step > lastNotified;
@@ -380,41 +621,55 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
 
         if (newlyDue.length > 0) {
           const dueLead = newlyDue[0];
-          await triggerPush({
-            title: '⏰ Follow-up Due',
-            body: `${dueLead.full_name} is due for message ${dueLead.current_step + 1}`,
-            url: `/leads/${dueLead.id}?tab=due`,
-            waLink: generateWhatsAppLink(dueLead.phone_number, personalizeMessage(
-              NURTURE_SEQUENCE[dueLead.current_step]?.message_text || '', 
-              dueLead.full_name, 
-              dueLead.metadata.clinic_type, 
-              dueLead.nickname
-            ))
-          }, subscription);
+          await triggerPush(
+            {
+              title: "⏰ Follow-up Due",
+              body: `${dueLead.full_name} is due for message ${dueLead.current_step + 1}`,
+              url: `/leads/${dueLead.id}?tab=due`,
+              waLink: generateWhatsAppLink(
+                dueLead.phone_number,
+                personalizeMessage(
+                  NURTURE_SEQUENCE[dueLead.current_step]?.message_text || "",
+                  dueLead.full_name,
+                  dueLead.metadata.clinic_type,
+                  dueLead.nickname,
+                ),
+              ),
+            },
+            subscription,
+          );
 
           // Update both local storage and in-memory baseline immediately
-          localStorage.setItem('notified_steps', JSON.stringify({ ...notifiedSteps, [dueLead.id]: dueLead.current_step }));
+          localStorage.setItem(
+            "notified_steps",
+            JSON.stringify({
+              ...notifiedSteps,
+              [dueLead.id]: dueLead.current_step,
+            }),
+          );
           sessionBaseline.current.steps[dueLead.id] = dueLead.current_step;
         }
-
       } catch (e) {
-        console.error('Background Notification check error:', e);
+        console.error("Background Notification check error:", e);
       }
     }
 
-    async function triggerPush(payload: any, subscription: PushSubscription | null) {
+    async function triggerPush(
+      payload: any,
+      subscription: PushSubscription | null,
+    ) {
       if (!subscription) return;
       try {
-        await fetch('/api/push', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/push", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             subscriptions: [subscription],
-            notifications: [payload]
-          })
+            notifications: [payload],
+          }),
         });
       } catch (e) {
-        console.error('Push trigger failed:', e);
+        console.error("Push trigger failed:", e);
       }
     }
 
@@ -426,29 +681,31 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
   }, [leads, dueLeads]);
 
   const handleEnableNotifications = async () => {
-    if (typeof window === 'undefined') return;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Notifications are not supported in this browser.');
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      alert("Notifications are not supported in this browser.");
       return;
     }
 
     try {
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        alert('Permission not granted for notifications.');
+      if (permission !== "granted") {
+        alert("Permission not granted for notifications.");
         return;
       }
 
       // Use the existing registration if available, otherwise wait for ready
       const registration = await navigator.serviceWorker.ready;
       if (!registration) {
-        throw new Error('Service worker registration not available');
+        throw new Error("Service worker registration not available");
       }
 
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!publicKey) {
-        console.error('NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing');
-        alert('Push notification configuration is incomplete (Public Key missing).');
+        console.error("NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing");
+        alert(
+          "Push notification configuration is incomplete (Public Key missing).",
+        );
         return;
       }
 
@@ -458,40 +715,52 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
           applicationServerKey: urlBase64ToUint8Array(publicKey),
         });
 
-        console.log('Subscribed!', subscription);
+        console.log("Subscribed!", subscription);
         setIsSubscribed(true);
         setOpen(false);
       } catch (subError) {
-        console.error('PushManager.subscribe failed:', subError);
-        throw new Error('Failed to subscribe to push service');
+        console.error("PushManager.subscribe failed:", subError);
+        throw new Error("Failed to subscribe to push service");
       }
     } catch (e: any) {
-      console.error('Enable Notifications Error:', e);
-      alert(e.message || 'An unexpected error occurred while enabling notifications.');
+      console.error("Enable Notifications Error:", e);
+      alert(
+        e.message ||
+          "An unexpected error occurred while enabling notifications.",
+      );
     }
   };
 
   const prevDueCount = useRef(dueLeads.length);
   useEffect(() => {
-    if (dueLeads.length > prevDueCount.current && typeof window !== 'undefined') {
+    if (
+      dueLeads.length > prevDueCount.current &&
+      typeof window !== "undefined"
+    ) {
       try {
-        if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+        if (
+          "Notification" in window &&
+          Notification.permission === "granted" &&
+          "serviceWorker" in navigator
+        ) {
           const newest = dueLeads[0];
-          navigator.serviceWorker.ready.then(reg => {
-            reg.showNotification('Bistro CRM — Follow-up Due', {
-              body: `${newest.full_name} is due for message ${newest.current_step + 1}`,
-              icon: 'https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png',
-              data: {
-                url: `/leads/${newest.id}?tab=due`
-              }
-            });
-            // We can't easily capture 'click' on local showNotification from main thread 
-            // but our sw.js already handles notificationclick by redirecting to data.url
-            acknowledge(newest.id, newest.current_step);
-          }).catch(err => console.error('Local notification failed:', err));
+          navigator.serviceWorker.ready
+            .then((reg) => {
+              reg.showNotification("Bistro CRM — Follow-up Due", {
+                body: `${newest.full_name} is due for message ${newest.current_step + 1}`,
+                icon: "https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png",
+                data: {
+                  url: `/leads/${newest.id}?tab=due`,
+                },
+              });
+              // We can't easily capture 'click' on local showNotification from main thread
+              // but our sw.js already handles notificationclick by redirecting to data.url
+              acknowledge(newest.id, newest.current_step);
+            })
+            .catch((err) => console.error("Local notification failed:", err));
         }
       } catch (e) {
-        console.error('Core notification system error:', e);
+        console.error("Core notification system error:", e);
       }
     }
     prevDueCount.current = dueLeads.length;
@@ -499,74 +768,115 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
 
   const getNextMsgLink = (lead: Lead) => {
     const stepIdx = lead.current_step;
-    if (stepIdx >= NURTURE_SEQUENCE.length) return '';
+    if (stepIdx >= NURTURE_SEQUENCE.length) return "";
     const step = NURTURE_SEQUENCE[stepIdx];
-    const variant = autoSelectVariant(step.step_number, lead.metadata?.lead_quality_desc || '', step.variants);
+    const variant = autoSelectVariant(
+      step.step_number,
+      lead.metadata?.lead_quality_desc || "",
+      step.variants,
+    );
     const base = variant ? variant.text : step.message_text;
-    const text = personalizeMessage(base, lead.full_name, lead.metadata?.clinic_type || '', lead.nickname);
+    const text = personalizeMessage(
+      base,
+      lead.full_name,
+      lead.metadata?.clinic_type || "",
+      lead.nickname,
+    );
     return generateWhatsAppLink(lead.phone_number, text);
   };
 
   if (!mounted) return null;
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} style={{ position: "relative" }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         className="transition-enterprise"
         style={{
-          position: 'relative',
-          background: 'var(--surface-color)',
-          border: '1px solid var(--border-color)',
+          position: "relative",
+          background: "var(--surface-color)",
+          border: "1px solid var(--border-color)",
           borderRadius: 10,
-          padding: '8px 12px',
-          cursor: 'pointer',
+          padding: "8px 12px",
+          cursor: "pointer",
           fontSize: 18,
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
         }}
       >
-        {isSubscribed ? '🔔' : '🔕'}
+        {isSubscribed ? "🔔" : "🔕"}
         {unreadDue.length > 0 && (
-          <span style={{
-            position: 'absolute',
-            top: -4, right: -4,
-            background: 'var(--accent-color)',
-            color: 'var(--bg-color)',
-            borderRadius: '50%',
-            width: 18, height: 18,
-            fontSize: 10,
-            fontWeight: 800,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {unreadDue.length > 9 ? '9+' : unreadDue.length}
+          <span
+            style={{
+              position: "absolute",
+              top: -4,
+              right: -4,
+              background: "var(--accent-color)",
+              color: "var(--bg-color)",
+              borderRadius: "50%",
+              width: 18,
+              height: 18,
+              fontSize: 10,
+              fontWeight: 800,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {unreadDue.length > 9 ? "9+" : unreadDue.length}
           </span>
         )}
       </button>
 
       {open && (
-        <div style={{
-          position: 'absolute',
-          top: '110%',
-          right: 0,
-          width: 320,
-          maxHeight: 400,
-          overflowY: 'auto',
-          background: 'var(--surface-color)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 14,
-          boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-          zIndex: 100,
-        }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-color)' }}>
-              {unreadDue.length === 0 ? '🎉 All caught up!' : `${unreadDue.length} unread`}
+        <div
+          style={{
+            position: "absolute",
+            top: "110%",
+            right: 0,
+            width: 320,
+            maxHeight: 400,
+            overflowY: "auto",
+            background: "var(--surface-color)",
+            border: "1px solid var(--border-color)",
+            borderRadius: 14,
+            boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              padding: "12px 16px",
+              borderBottom: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "var(--accent-color)",
+              }}
+            >
+              {unreadDue.length === 0
+                ? "🎉 All caught up!"
+                : `${unreadDue.length} unread`}
             </span>
             {!isSubscribed && (
               <button
                 onClick={handleEnableNotifications}
                 className="transition-enterprise"
-                style={{ background: 'var(--accent-color)', color: 'var(--bg-color)', fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 8, padding: '4px 8px' }}
+                style={{
+                  background: "var(--accent-color)",
+                  color: "var(--bg-color)",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  borderRadius: 8,
+                  padding: "4px 8px",
+                }}
               >
                 Enable Push 🔔
               </button>
@@ -574,7 +884,17 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             {unreadDue.length > 0 && isSubscribed && (
               <button
                 onClick={clearAll}
-                style={{ background: 'none', border: 'none', color: 'var(--text-color)', opacity: 0.4, fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-color)",
+                  opacity: 0.4,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
                 className="transition-enterprise"
               >
                 Clear All
@@ -582,42 +902,84 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
             )}
           </div>
           {unreadDue.length === 0 ? (
-            <div style={{ padding: '24px 16px', fontSize: 12, color: 'var(--text-color)', opacity: 0.5, textAlign: 'center' }}>
+            <div
+              style={{
+                padding: "24px 16px",
+                fontSize: 12,
+                color: "var(--text-color)",
+                opacity: 0.5,
+                textAlign: "center",
+              }}
+            >
               No pending follow-ups right now.
             </div>
           ) : (
-            unreadDue.slice(0, 8).map(lead => {
+            unreadDue.slice(0, 8).map((lead) => {
               const waLink = getNextMsgLink(lead);
               return (
                 <div
                   key={lead.id}
-                  style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 6 }}
+                  style={{
+                    padding: "12px 16px",
+                    borderBottom: "1px solid var(--border-color)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                  }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
                     <div>
                       <div
-                        style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-color)', cursor: 'pointer' }}
-                        onClick={() => { 
-                          setOpen(false); 
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: "var(--text-color)",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          setOpen(false);
                           acknowledge(lead.id, lead.current_step);
-                          router.push(`/leads/${lead.id}?tab=due`); 
+                          router.push(`/leads/${lead.id}?tab=due`);
                         }}
                       >
                         {lead.full_name}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-color)', opacity: 0.5 }}>
-                        Msg {lead.current_step + 1} due · {lead.metadata.clinic_type || lead.company_name}
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "var(--text-color)",
+                          opacity: 0.5,
+                        }}
+                      >
+                        Msg {lead.current_step + 1} due ·{" "}
+                        {lead.metadata.clinic_type || lead.company_name}
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: "flex", gap: 6 }}>
                     <button
-                      onClick={() => { 
-                        setOpen(false); 
+                      onClick={() => {
+                        setOpen(false);
                         acknowledge(lead.id, lead.current_step);
-                        router.push(`/leads/${lead.id}?tab=due`); 
+                        router.push(`/leads/${lead.id}?tab=due`);
                       }}
-                      style={{ flex: 1, padding: '6px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--surface-color)', color: 'var(--text-color)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                      style={{
+                        flex: 1,
+                        padding: "6px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border-color)",
+                        background: "var(--surface-color)",
+                        color: "var(--text-color)",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
                     >
                       View Lead
                     </button>
@@ -629,15 +991,15 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
                         onClick={() => acknowledge(lead.id, lead.current_step)}
                         style={{
                           flex: 1,
-                          padding: '6px',
+                          padding: "6px",
                           borderRadius: 8,
-                          background: 'var(--accent-color)',
-                          color: 'var(--bg-color)',
+                          background: "var(--accent-color)",
+                          color: "var(--bg-color)",
                           fontSize: 11,
                           fontWeight: 700,
-                          textDecoration: 'none',
-                          textAlign: 'center',
-                          cursor: 'pointer',
+                          textDecoration: "none",
+                          textAlign: "center",
+                          cursor: "pointer",
                         }}
                       >
                         Send Next ↗
@@ -663,193 +1025,308 @@ function NotificationBell({ dueLeads, leads, onMarkSent }: { dueLeads: Lead[], l
 function TabRestorer({ onRestore }: { onRestore: (tab: MainFilter) => void }) {
   const searchParams = useSearchParams();
   useEffect(() => {
-    const tabParam = searchParams.get('tab') as MainFilter | null;
-    if (tabParam && ['all', 'due', 'active', 'paused'].includes(tabParam)) {
+    const tabParam = searchParams.get("tab") as MainFilter | null;
+    if (tabParam && ["all", "due", "active", "paused"].includes(tabParam)) {
       onRestore(tabParam);
     } else {
       const saved = sessionStorage.getItem(TAB_KEY) as MainFilter | null;
-      if (saved && ['all', 'due', 'active', 'paused'].includes(saved)) {
+      if (saved && ["all", "due", "active", "paused"].includes(saved)) {
         onRestore(saved);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return null;
+}
+
+interface ActiveFilters {
+  clinic: string;
+  status: string;
+  tag: string;
+  problem: string;
 }
 
 function AppInner() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [mounted,      setMounted]      = useState(false);
-  const [authed,       setAuthed]       = useState(false);
-  const [pin,          setPin]          = useState('');
-  const [pinShake,     setPinShake]     = useState(false);
-  const [leads,        setLeads]        = useState<Lead[]>([]);
-  const [loading,      setLoading]      = useState(false);
-  const [syncing,      setSyncing]      = useState(false);
-  const [mainFilter,   setMainFilter]   = useState<MainFilter>('all');
-  const [activeFilters, setActiveFilters] = useState({ clinic: '', status: '', tag: '', problem: '' });
-  const [view,         setView]         = useState<'list' | 'board'>('list');
-  const [apiError,     setApiError]     = useState<string | null>(null);
-  const [showAddLead,  setShowAddLead]  = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinShake, setPinShake] = useState(false);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [mainFilter, setMainFilter] = useState<MainFilter>("all");
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>(() => {
+    if (typeof window === "undefined")
+      return { clinic: "", status: "", tag: "", problem: "" };
+    const saved = sessionStorage.getItem(FILTER_KEY);
+    try {
+      return saved
+        ? JSON.parse(saved)
+        : { clinic: "", status: "", tag: "", problem: "" };
+    } catch {
+      return { clinic: "", status: "", tag: "", problem: "" };
+    }
+  });
+  const [view, setView] = useState<"list" | "board">(() => {
+    if (typeof window === "undefined") return "list";
+    const saved = sessionStorage.getItem(VIEW_KEY);
+    return saved === "board" ? "board" : "list";
+  });
+
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [showAddLead, setShowAddLead] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined' && sessionStorage.getItem(AUTH_KEY) === '1') setAuthed(true);
+    if (
+      typeof window !== "undefined" &&
+      sessionStorage.getItem(AUTH_KEY) === "1"
+    )
+      setAuthed(true);
   }, []);
 
   // Tab restoration is handled by <TabRestorer> in JSX (needs Suspense boundary)
 
   const loadLeads = useCallback(async () => {
-    setLoading(true); setApiError(null);
+    setLoading(true);
+    setApiError(null);
     try {
       const [leadsRes, nurtureRes] = await Promise.all([
-        fetch('/api/leads'),
-        fetch('/api/nurture')
+        fetch("/api/leads"),
+        fetch("/api/nurture"),
       ]);
-      const data  = await leadsRes.json()  as { leads?: SheetLead[]; error?: string };
-      const nData = await nurtureRes.json() as { nurture?: NurtureMap };
-      
+      const data = (await leadsRes.json()) as {
+        leads?: SheetLead[];
+        error?: string;
+      };
+      const nData = (await nurtureRes.json()) as { nurture?: NurtureMap };
+
       const serverLeads = mergeLeads(data.leads ?? [], nData.nurture ?? {});
-      
+
       // Load local manual leads
       let localLeads: Lead[] = [];
       try {
         const stored = localStorage.getItem(LOCAL_LEADS_KEY);
         if (stored) localLeads = JSON.parse(stored);
       } catch (e) {
-        console.error('Failed to load local leads', e);
+        console.error("Failed to load local leads", e);
       }
 
       // Merge — server leads (from sheet) take priority over local ghosts
-      const serverIds = new Set(serverLeads.map(l => l.id));
-      const filteredLocal = localLeads.filter(l => !serverIds.has(l.id));
-      
-      setLeads([...serverLeads, ...filteredLocal].sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ));
+      const serverIds = new Set(serverLeads.map((l) => l.id));
+      const filteredLocal = localLeads.filter((l) => !serverIds.has(l.id));
 
-      if (!leadsRes.ok && serverLeads.length === 0) throw new Error(data.error ?? 'Failed to fetch leads');
-    } catch (e) { setApiError(e instanceof Error ? e.message : 'Unknown error'); }
-    finally { setLoading(false); }
+      setLeads(
+        [...serverLeads, ...filteredLocal].sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        ),
+      );
+
+      if (!leadsRes.ok && serverLeads.length === 0)
+        throw new Error(data.error ?? "Failed to fetch leads");
+    } catch (e) {
+      setApiError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const isAccessGranted = authed || !!session;
-  useEffect(() => { if (isAccessGranted) loadLeads(); }, [isAccessGranted, loadLeads]);
+  useEffect(() => {
+    if (isAccessGranted) loadLeads();
+  }, [isAccessGranted, loadLeads]);
 
-  const handleSync = async () => { setSyncing(true); await loadLeads(); setSyncing(false); };
+  const handleSync = async () => {
+    setSyncing(true);
+    await loadLeads();
+    setSyncing(false);
+  };
 
   const inputPin = useCallback((d: string) => {
-    setPin(prev => {
+    setPin((prev) => {
       if (prev.length >= CORRECT_PIN.length) return prev;
       const next = prev + d;
       if (next.length === CORRECT_PIN.length) {
-        if (next === CORRECT_PIN) { sessionStorage.setItem(AUTH_KEY, '1'); setAuthed(true); }
-        else { setPinShake(true); setTimeout(() => { setPin(''); setPinShake(false); }, 700); }
+        if (next === CORRECT_PIN) {
+          sessionStorage.setItem(AUTH_KEY, "1");
+          setAuthed(true);
+        } else {
+          setPinShake(true);
+          setTimeout(() => {
+            setPin("");
+            setPinShake(false);
+          }, 700);
+        }
       }
       return next;
     });
   }, []);
 
-  const deletePin = () => setPin(p => p.slice(0, -1));
+  const deletePin = () => setPin((p) => p.slice(0, -1));
 
   useEffect(() => {
     if (isAccessGranted) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key >= '0' && e.key <= '9') inputPin(e.key);
-      else if (e.key === 'Backspace') deletePin();
+      if (e.key >= "0" && e.key <= "9") inputPin(e.key);
+      else if (e.key === "Backspace") deletePin();
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, [authed, inputPin]);
 
   // Persist active tab on change
   const setMainFilterAndSave = (f: MainFilter) => {
     setMainFilter(f);
-    if (typeof window !== 'undefined') sessionStorage.setItem(TAB_KEY, f);
+    if (typeof window !== "undefined") sessionStorage.setItem(TAB_KEY, f);
   };
 
   const handleMarkSent = async (id: string) => {
-    const lead = leads.find(l => l.id === id); if (!lead) return;
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return;
     const nextStep = Math.min(lead.current_step + 1, NURTURE_SEQUENCE.length);
     const now = new Date().toISOString();
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, current_step: nextStep, last_sent_at: now } : l));
-    await fetch('/api/nurture', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leadId: id, currentStep: nextStep, lastSentAt: now, msgIndex: lead.current_step + 1, sentAt: now })
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.id === id ? { ...l, current_step: nextStep, last_sent_at: now } : l,
+      ),
+    );
+    await fetch("/api/nurture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        leadId: id,
+        currentStep: nextStep,
+        lastSentAt: now,
+        msgIndex: lead.current_step + 1,
+        sentAt: now,
+      }),
     });
   };
 
   const handlePause = async (id: string) => {
-    const lead = leads.find(l => l.id === id); if (!lead) return;
-    const newStatus = lead.status === 'paused' ? 'active' : 'paused';
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    await fetch('/api/nurture', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leadId: id, status: newStatus })
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return;
+    const newStatus = lead.status === "paused" ? "active" : "paused";
+    setLeads((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, status: newStatus } : l)),
+    );
+    await fetch("/api/nurture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leadId: id, status: newStatus }),
     });
   };
 
   const handleUpdateTag = async (id: string, tag: string) => {
     try {
-      const res = await fetch('/api/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: id, tag })
+      const res = await fetch("/api/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId: id, tag }),
       });
-      if (!res.ok) throw new Error('Failed to update tag');
-      setLeads(prev => prev.map(l => l.id === id ? { ...l, internal_tag: tag } : l));
+      if (!res.ok) throw new Error("Failed to update tag");
+      setLeads((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, internal_tag: tag } : l)),
+      );
     } catch (e) {
-      setApiError(e instanceof Error ? e.message : 'Unknown error');
+      setApiError(e instanceof Error ? e.message : "Unknown error");
     }
   };
 
   // Before navigating to a lead, persist the current tab
   const navigateToLead = (leadId: string) => {
-    if (typeof window !== 'undefined') sessionStorage.setItem(TAB_KEY, mainFilter);
+    if (typeof window !== "undefined")
+      sessionStorage.setItem(TAB_KEY, mainFilter);
     router.push(`/leads/${leadId}?tab=${mainFilter}`);
   };
 
-  const dueLeads = leads.filter(l => calculateIsDue(l));
+  const dueLeads = leads.filter((l) => calculateIsDue(l));
 
-  const displayLeads = leads.filter(l => {
-    if (mainFilter === 'due'    && !calculateIsDue(l)) return false;
-    if (mainFilter === 'active' && l.status !== 'active') return false;
-    if (mainFilter === 'paused' && l.status !== 'paused') return false;
-    if (activeFilters.clinic  && l.metadata.clinic_type  !== activeFilters.clinic)  return false;
-    if (activeFilters.status  && l.metadata.lead_status  !== activeFilters.status)  return false;
-    if (activeFilters.tag     && l.internal_tag          !== activeFilters.tag)     return false;
-    if (activeFilters.problem && l.metadata.lead_quality_desc !== activeFilters.problem) return false;
+  const displayLeads = leads.filter((l) => {
+    if (mainFilter === "due" && !calculateIsDue(l)) return false;
+    if (mainFilter === "active" && l.status !== "active") return false;
+    if (mainFilter === "paused" && l.status !== "paused") return false;
+    if (activeFilters.clinic && l.metadata.clinic_type !== activeFilters.clinic)
+      return false;
+    if (activeFilters.status && l.metadata.lead_status !== activeFilters.status)
+      return false;
+    if (activeFilters.tag && l.internal_tag !== activeFilters.tag) return false;
+    if (
+      activeFilters.problem &&
+      l.metadata.lead_quality_desc !== activeFilters.problem
+    )
+      return false;
     return true;
   });
 
   const filterOptions = {
-    clinics:   Array.from(new Set(leads.map(l => l.metadata.clinic_type))).filter(Boolean) as string[],
-    statuses:  Array.from(new Set(leads.map(l => l.metadata.lead_status))).filter(Boolean) as string[],
-    tags:      Array.from(new Set(leads.map(l => l.internal_tag))).filter(Boolean) as string[],
-    problems:  Array.from(new Set(leads.map(l => l.metadata.lead_quality_desc))).filter(Boolean) as string[],
+    clinics: Array.from(
+      new Set(leads.map((l) => l.metadata.clinic_type)),
+    ).filter(Boolean) as string[],
+    statuses: Array.from(
+      new Set(leads.map((l) => l.metadata.lead_status)),
+    ).filter(Boolean) as string[],
+    tags: Array.from(new Set(leads.map((l) => l.internal_tag))).filter(
+      Boolean,
+    ) as string[],
+    problems: Array.from(
+      new Set(leads.map((l) => l.metadata.lead_quality_desc)),
+    ).filter(Boolean) as string[],
   };
 
   const clearAllFilters = () => {
-    setMainFilterAndSave('all');
-    setActiveFilters({ clinic: '', status: '', tag: '', problem: '' });
+    setMainFilterAndSave("all");
+    setActiveFilters({ clinic: "", status: "", tag: "", problem: "" });
   };
 
-  if (!mounted || status === 'loading') {
+  if (!mounted || status === "loading") {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color)' }}>
-        <div style={{ width: 32, height: 32, border: '2px solid var(--accent-color)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg-color)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--accent-color)",
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            border: "2px solid var(--accent-color)",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite",
+          }}
+        />
       </div>
     );
   }
 
-  if (!isAccessGranted) return <PinScreen pin={pin} shake={pinShake} onInput={inputPin} onDelete={deletePin} />;
+  if (!isAccessGranted)
+    return (
+      <PinScreen
+        pin={pin}
+        shake={pinShake}
+        onInput={inputPin}
+        onDelete={deletePin}
+      />
+    );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', paddingBottom: 80 }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--bg-color)",
+        paddingBottom: 80,
+      }}
+    >
       {/* Tab restorer — must be in Suspense for useSearchParams */}
       <Suspense fallback={null}>
         <TabRestorer onRestore={setMainFilterAndSave} />
@@ -857,84 +1334,227 @@ function AppInner() {
       <style>{`
         .stats-grid   { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
         .main-content { padding: 32px 32px 0; width: 100%; }
-        
+
         @media(max-width:768px) {
           .main-content { padding: 16px 16px 0; }
           .stats-grid { gap: 8px; }
         }
-        
+
         @media(max-width:480px) {
           .stats-grid { grid-template-columns: 1fr; }
         }
 
-        @media(min-width:768px)  { 
-          .stats-grid { grid-template-columns:repeat(4,1fr); } 
+        @media(min-width:768px)  {
+          .stats-grid { grid-template-columns:repeat(4,1fr); }
         }
       `}</style>
 
       {/* ── Sticky Header ── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--surface-color), transparent 10%)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-color)', padding: '14px 16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          background:
+            "color-mix(in srgb, var(--surface-color), transparent 10%)",
+          backdropFilter: "blur(12px)",
+          borderBottom: "1px solid var(--border-color)",
+          padding: "14px 16px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img
               src="https://d1yei2z3i6k35z.cloudfront.net/10516146/67e5ae77eae02_LogoBanner.001.png"
               alt="Bistro CRM Logo"
-              style={{ height: 24, width: 'auto', objectFit: 'contain' }}
+              style={{ height: 24, width: "auto", objectFit: "contain" }}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {/* Add Lead Button */}
             <button
               onClick={() => setShowAddLead(true)}
               className="transition-enterprise"
-              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 10, background: 'var(--accent-color)', border: 'none', color: 'var(--bg-color)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "8px 12px",
+                borderRadius: 10,
+                background: "var(--accent-color)",
+                border: "none",
+                color: "var(--bg-color)",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
             >
               + Add
             </button>
             {/* Notification Bell */}
-            <NotificationBell 
-              dueLeads={dueLeads} 
-              leads={leads} 
-              onMarkSent={handleMarkSent} 
+            <NotificationBell
+              dueLeads={dueLeads}
+              leads={leads}
+              onMarkSent={handleMarkSent}
             />
             {/* Sync Button */}
-            <button onClick={handleSync} disabled={syncing || loading} className="transition-enterprise" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 10, background: 'var(--surface-color)', border: '1px solid var(--border-color)', color: 'var(--accent-color)', fontSize: 12, fontWeight: 600, cursor: syncing || loading ? 'not-allowed' : 'pointer', opacity: syncing || loading ? 0.5 : 1 }}>
-              <span style={{ display: 'inline-block', animation: syncing ? 'spin 0.8s linear infinite' : 'none' }}>⟳</span>
+            <button
+              onClick={handleSync}
+              disabled={syncing || loading}
+              className="transition-enterprise"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "8px 12px",
+                borderRadius: 10,
+                background: "var(--surface-color)",
+                border: "1px solid var(--border-color)",
+                color: "var(--accent-color)",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: syncing || loading ? "not-allowed" : "pointer",
+                opacity: syncing || loading ? 0.5 : 1,
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  animation: syncing ? "spin 0.8s linear infinite" : "none",
+                }}
+              >
+                ⟳
+              </span>
             </button>
           </div>
         </div>
       </div>
 
       <div className="main-content">
-
         {/* ── Stats Bar ── */}
         <div className="stats-grid" style={{ marginBottom: 20 }}>
-          <StatCard label="Total Leads"  value={leads.length}                              active={mainFilter === 'all'}    onClick={() => setMainFilterAndSave('all')} />
-          <StatCard label="Due Today"    value={dueLeads.length}   accent                  active={mainFilter === 'due'}    onClick={() => setMainFilterAndSave('due')} />
-          <StatCard label="Active"       value={leads.filter(l => l.status === 'active').length}  active={mainFilter === 'active'} onClick={() => setMainFilterAndSave('active')} />
-          <StatCard label="Paused"       value={leads.filter(l => l.status === 'paused').length}  active={mainFilter === 'paused'} onClick={() => setMainFilterAndSave('paused')} />
+          <StatCard
+            label="Total Leads"
+            value={leads.length}
+            active={mainFilter === "all"}
+            onClick={() => setMainFilterAndSave("all")}
+          />
+          <StatCard
+            label="Due Today"
+            value={dueLeads.length}
+            accent
+            active={mainFilter === "due"}
+            onClick={() => setMainFilterAndSave("due")}
+          />
+          <StatCard
+            label="Active"
+            value={leads.filter((l) => l.status === "active").length}
+            active={mainFilter === "active"}
+            onClick={() => setMainFilterAndSave("active")}
+          />
+          <StatCard
+            label="Paused"
+            value={leads.filter((l) => l.status === "paused").length}
+            active={mainFilter === "paused"}
+            onClick={() => setMainFilterAndSave("paused")}
+          />
         </div>
 
         {/* ── API Error ── */}
         {apiError && (
-          <div style={{ background: 'color-mix(in srgb, var(--surface-color), var(--danger-color) 15%)', border: '1px solid var(--danger-color)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: 'var(--danger-color)' }}>
+          <div
+            style={{
+              background:
+                "color-mix(in srgb, var(--surface-color), var(--danger-color) 15%)",
+              border: "1px solid var(--danger-color)",
+              borderRadius: 12,
+              padding: "12px 16px",
+              marginBottom: 16,
+              fontSize: 13,
+              color: "var(--danger-color)",
+            }}
+          >
             <strong>⚠️ Error:</strong> {apiError}
           </div>
         )}
 
         {/* ── Filter Bar ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-              <FilterDropdown label="Clinic Type"  value={activeFilters.clinic}  options={filterOptions.clinics}  onChange={v => setActiveFilters(f => ({ ...f, clinic: v }))} />
-              <FilterDropdown label="Problem"      value={activeFilters.problem} options={filterOptions.problems} onChange={v => setActiveFilters(f => ({ ...f, problem: v }))} shorten />
-              <FilterDropdown label="Meta Status"  value={activeFilters.status}  options={filterOptions.statuses} onChange={v => setActiveFilters(f => ({ ...f, status: v }))} />
-              <FilterDropdown label="Internal Tag" value={activeFilters.tag}     options={filterOptions.tags}     onChange={v => setActiveFilters(f => ({ ...f, tag: v }))} />
-              {(activeFilters.clinic || activeFilters.status || activeFilters.tag || activeFilters.problem || mainFilter !== 'all') && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <FilterDropdown
+                label="Clinic Type"
+                value={activeFilters.clinic}
+                options={filterOptions.clinics}
+                onChange={(v) => setActiveFilters((f) => ({ ...f, clinic: v }))}
+              />
+              <FilterDropdown
+                label="Problem"
+                value={activeFilters.problem}
+                options={filterOptions.problems}
+                onChange={(v) =>
+                  setActiveFilters((f) => ({ ...f, problem: v }))
+                }
+                shorten
+              />
+              <FilterDropdown
+                label="Meta Status"
+                value={activeFilters.status}
+                options={filterOptions.statuses}
+                onChange={(v) => setActiveFilters((f) => ({ ...f, status: v }))}
+              />
+              <FilterDropdown
+                label="Internal Tag"
+                value={activeFilters.tag}
+                options={filterOptions.tags}
+                onChange={(v) => setActiveFilters((f) => ({ ...f, tag: v }))}
+              />
+              {(activeFilters.clinic ||
+                activeFilters.status ||
+                activeFilters.tag ||
+                activeFilters.problem ||
+                mainFilter !== "all") && (
                 <button
                   onClick={clearAllFilters}
                   className="transition-enterprise"
-                  style={{ background: 'transparent', border: 'none', color: 'var(--accent-color)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '8px 12px', opacity: 0.8 }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--accent-color)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    padding: "8px 12px",
+                    opacity: 0.8,
+                  }}
                 >
                   ✕ Clear All
                 </button>
@@ -946,23 +1566,30 @@ function AppInner() {
 
         {/* ── Lead View ── */}
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div className="stats-grid">
               <Skeleton variant="rect" height={70} />
               <Skeleton variant="rect" height={70} />
               <Skeleton variant="rect" height={70} />
               <Skeleton variant="rect" height={70} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} variant="rect" height={80} />)}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} variant="rect" height={80} />
+              ))}
             </div>
           </div>
         ) : displayLeads.length === 0 ? (
           <EmptyState tab={mainFilter} />
         ) : (
           <div style={{ paddingBottom: 24 }}>
-            {view === 'list' ? (
-              <LeadList leads={displayLeads} onPause={handlePause} onUpdateTag={handleUpdateTag} onNavigate={navigateToLead} />
+            {view === "list" ? (
+              <LeadList
+                leads={displayLeads}
+                onPause={handlePause}
+                onUpdateTag={handleUpdateTag}
+                onNavigate={navigateToLead}
+              />
             ) : (
               <KanbanBoard leads={displayLeads} onUpdateTag={handleUpdateTag} />
             )}
@@ -971,19 +1598,51 @@ function AppInner() {
       </div>
 
       {/* ── Bottom Nav ── */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'color-mix(in srgb, var(--surface-color), transparent 5%)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border-color)', padding: '12px 0 20px', display: 'flex', justifyContent: 'space-around' }}>
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background:
+            "color-mix(in srgb, var(--surface-color), transparent 5%)",
+          backdropFilter: "blur(12px)",
+          borderTop: "1px solid var(--border-color)",
+          padding: "12px 0 20px",
+          display: "flex",
+          justifyContent: "space-around",
+        }}
+      >
         {[
-          { icon: '🏠', label: 'Dashboard', path: '/' },
-          { icon: '📊', label: 'Analytics', path: '/analytics' },
-          { icon: '⚙️', label: 'Settings', path: '/settings' }
-        ].map(item => (
+          { icon: "🏠", label: "Dashboard", path: "/" },
+          { icon: "📊", label: "Analytics", path: "/analytics" },
+          { icon: "⚙️", label: "Settings", path: "/settings" },
+        ].map((item) => (
           <div
             key={item.label}
             onClick={() => router.push(item.path)}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 3,
+              cursor: "pointer",
+            }}
           >
             <span style={{ fontSize: 22 }}>{item.icon}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: item.path === '/' ? 'var(--accent-color)' : 'var(--text-color)', opacity: item.path === '/' ? 1 : 0.5 }}>{item.label}</span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color:
+                  item.path === "/"
+                    ? "var(--accent-color)"
+                    : "var(--text-color)",
+                opacity: item.path === "/" ? 1 : 0.5,
+              }}
+            >
+              {item.label}
+            </span>
           </div>
         ))}
       </div>
@@ -995,14 +1654,17 @@ function AppInner() {
       {showAddLead && (
         <AddLeadModal
           onClose={() => setShowAddLead(false)}
-          onAdd={newLead => {
-            setLeads(prev => [newLead, ...prev]);
+          onAdd={(newLead) => {
+            setLeads((prev) => [newLead, ...prev]);
             try {
               const stored = localStorage.getItem(LOCAL_LEADS_KEY);
               const current = stored ? JSON.parse(stored) : [];
-              localStorage.setItem(LOCAL_LEADS_KEY, JSON.stringify([newLead, ...current]));
+              localStorage.setItem(
+                LOCAL_LEADS_KEY,
+                JSON.stringify([newLead, ...current]),
+              );
             } catch (e) {
-              console.error('Failed to save manual lead locally', e);
+              console.error("Failed to save manual lead locally", e);
             }
           }}
         />
@@ -1023,66 +1685,165 @@ export default function App() {
 
 // ── Small components ──────────────────────────────────────────────────────────
 
-function StatCard({ label, value, accent = false, active = false, onClick }: { label: string; value: number; accent?: boolean; active?: boolean; onClick: () => void }) {
+function StatCard({
+  label,
+  value,
+  accent = false,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+  active?: boolean;
+  onClick: () => void;
+}) {
   return (
     <div
       onClick={onClick}
-      className={`transition-enterprise ${accent ? '' : 'deep-shadow'}`}
+      className={`transition-enterprise ${accent ? "" : "deep-shadow"}`}
       style={{
-        padding: '14px 16px',
+        padding: "14px 16px",
         borderRadius: 16,
-        background: active ? (accent ? 'var(--bg-color)' : 'var(--accent-color)') : (accent ? 'var(--accent-color)' : 'var(--surface-color)'),
-        border: `1px solid ${active ? 'var(--accent-color)' : 'var(--border-color)'}`,
-        boxShadow: accent ? `0 0 25px color-mix(in srgb, var(--accent-color), transparent 60%)` : '0 4px 12px rgba(0,0,0,0.3)',
-        cursor: 'pointer',
-        transform: active ? 'translateY(-2px)' : 'none',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+        background: active
+          ? accent
+            ? "var(--bg-color)"
+            : "var(--accent-color)"
+          : accent
+            ? "var(--accent-color)"
+            : "var(--surface-color)",
+        border: `1px solid ${active ? "var(--accent-color)" : "var(--border-color)"}`,
+        boxShadow: accent
+          ? `0 0 25px color-mix(in srgb, var(--accent-color), transparent 60%)`
+          : "0 4px 12px rgba(0,0,0,0.3)",
+        cursor: "pointer",
+        transform: active ? "translateY(-2px)" : "none",
+        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      <div style={{ fontSize: 11, fontWeight: 700, color: active ? (accent ? 'var(--accent-color)' : 'var(--bg-color)') : (accent ? 'var(--bg-color)' : 'var(--text-color)'), opacity: accent ? 0.9 : 0.6, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: active ? (accent ? 'var(--accent-color)' : 'var(--bg-color)') : (accent ? 'var(--bg-color)' : 'var(--text-color)') }}>{value}</div>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: active
+            ? accent
+              ? "var(--accent-color)"
+              : "var(--bg-color)"
+            : accent
+              ? "var(--bg-color)"
+              : "var(--text-color)",
+          opacity: accent ? 0.9 : 0.6,
+          marginBottom: 4,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 28,
+          fontWeight: 800,
+          color: active
+            ? accent
+              ? "var(--accent-color)"
+              : "var(--bg-color)"
+            : accent
+              ? "var(--bg-color)"
+              : "var(--text-color)",
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
 
-function FilterDropdown({ label, value, options, onChange, shorten = false }: { label: string; value: string; options: string[]; onChange: (v: string) => void; shorten?: boolean }) {
+function FilterDropdown({
+  label,
+  value,
+  options,
+  onChange,
+  shorten = false,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  shorten?: boolean;
+}) {
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: "relative" }}>
       <select
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         className="transition-enterprise"
         style={{
-          appearance: 'none',
-          background: value ? 'color-mix(in srgb, var(--accent-color), transparent 90%)' : 'var(--surface-color)',
-          border: `1px solid ${value ? 'var(--accent-color)' : 'var(--border-color)'}`,
+          appearance: "none",
+          background: value
+            ? "color-mix(in srgb, var(--accent-color), transparent 90%)"
+            : "var(--surface-color)",
+          border: `1px solid ${value ? "var(--accent-color)" : "var(--border-color)"}`,
           borderRadius: 12,
-          padding: '8px 32px 8px 12px',
+          padding: "8px 32px 8px 12px",
           fontSize: 12,
           fontWeight: 600,
-          color: value ? 'var(--accent-color)' : 'var(--text-color)',
-          cursor: 'pointer',
-          outline: 'none',
+          color: value ? "var(--accent-color)" : "var(--text-color)",
+          cursor: "pointer",
+          outline: "none",
           maxWidth: shorten ? 140 : 180,
-          textOverflow: 'ellipsis'
+          textOverflow: "ellipsis",
         }}
       >
         <option value="">{label}</option>
-        {options.map(opt => (
-          <option key={opt} value={opt}>{shorten && opt.length > 25 ? opt.slice(0, 25) + '...' : opt}</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {shorten && opt.length > 25 ? opt.slice(0, 25) + "..." : opt}
+          </option>
         ))}
       </select>
-      <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 10, opacity: 0.5 }}>▼</div>
+      <div
+        style={{
+          position: "absolute",
+          right: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          pointerEvents: "none",
+          fontSize: 10,
+          opacity: 0.5,
+        }}
+      >
+        ▼
+      </div>
     </div>
   );
 }
 
 function EmptyState({ tab }: { tab: string }) {
   return (
-    <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--accent-color)' }}>
-      <div style={{ fontSize: 52, marginBottom: 14 }}>{tab === 'due' ? '🎉' : '📭'}</div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-color)', marginBottom: 6 }}>{tab === 'due' ? 'All caught up!' : 'No results found'}</div>
-      <div style={{ fontSize: 13, color: 'var(--text-color)', opacity: 0.6 }}>Try clearing filters to see more leads.</div>
+    <div
+      style={{
+        textAlign: "center",
+        padding: "80px 0",
+        color: "var(--accent-color)",
+      }}
+    >
+      <div style={{ fontSize: 52, marginBottom: 14 }}>
+        {tab === "due" ? "🎉" : "📭"}
+      </div>
+      <div
+        style={{
+          fontSize: 17,
+          fontWeight: 700,
+          color: "var(--text-color)",
+          marginBottom: 6,
+        }}
+      >
+        {tab === "due" ? "All caught up!" : "No results found"}
+      </div>
+      <div style={{ fontSize: 13, color: "var(--text-color)", opacity: 0.6 }}>
+        Try clearing filters to see more leads.
+      </div>
     </div>
   );
 }
@@ -1093,13 +1854,13 @@ function PWAInstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     // Check if already in standalone mode
-    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
 
     // Check if dismissed before
-    if (localStorage.getItem('pwa_prompt_dismissed') === 'true') return;
+    if (localStorage.getItem("pwa_prompt_dismissed") === "true") return;
 
     const handleBeforeInstall = (e: any) => {
       e.preventDefault();
@@ -1107,83 +1868,126 @@ function PWAInstallPrompt() {
       setShowPrompt(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
     // iOS Detection
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
     const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
-    
+
     if (isIOSDevice && isSafari) {
       setIsIOS(true);
       setShowPrompt(true);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () =>
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
   }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') setShowPrompt(false);
+    if (outcome === "accepted") setShowPrompt(false);
     setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem('pwa_prompt_dismissed', 'true');
+    localStorage.setItem("pwa_prompt_dismissed", "true");
   };
 
   if (!showPrompt) return null;
 
   return (
-    <div className="animate-fade-in" style={{
-      position: 'fixed',
-      bottom: 90, 
-      left: 16,
-      right: 16,
-      zIndex: 1000,
-      background: 'var(--accent-color)',
-      color: 'var(--bg-color)',
-      padding: '16px',
-      borderRadius: 16,
-      boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-      border: '1px solid rgba(255,255,255,0.1)'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}>
-            <img src="https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+    <div
+      className="animate-fade-in"
+      style={{
+        position: "fixed",
+        bottom: 90,
+        left: 16,
+        right: 16,
+        zIndex: 1000,
+        background: "var(--accent-color)",
+        color: "var(--bg-color)",
+        padding: "16px",
+        borderRadius: 16,
+        boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        border: "1px solid rgba(255,255,255,0.1)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: "var(--bg-color)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 4,
+            }}
+          >
+            <img
+              src="https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png"
+              alt="Logo"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
           </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 13 }}>Install Bistro CRM</div>
-            <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 600 }}>Get instant follow-up alerts</div>
+            <div style={{ fontWeight: 800, fontSize: 13 }}>
+              Install Bistro CRM
+            </div>
+            <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 600 }}>
+              Get instant follow-up alerts
+            </div>
           </div>
         </div>
-        <button onClick={handleDismiss} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', opacity: 0.6, fontSize: 16 }}>✕</button>
+        <button
+          onClick={handleDismiss}
+          style={{
+            background: "none",
+            border: "none",
+            color: "inherit",
+            cursor: "pointer",
+            opacity: 0.6,
+            fontSize: 16,
+          }}
+        >
+          ✕
+        </button>
       </div>
-      <div style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.4, opacity: 0.9 }}>
-        {isIOS 
-          ? 'Tap the share button (square with arrow) and select "Add to Home Screen" to install.' 
-          : 'Install this app on your home screen for a better experience and real-time push notifications.'}
+      <div
+        style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.4, opacity: 0.9 }}
+      >
+        {isIOS
+          ? 'Tap the share button (square with arrow) and select "Add to Home Screen" to install.'
+          : "Install this app on your home screen for a better experience and real-time push notifications."}
       </div>
       {!isIOS && (
-        <button 
+        <button
           onClick={handleInstall}
           className="transition-enterprise"
-          style={{ 
-            background: 'var(--bg-color)', 
-            color: 'var(--accent-color)', 
-            border: 'none', 
-            borderRadius: 10, 
-            padding: '10px', 
-            fontWeight: 800, 
-            fontSize: 12, 
-            cursor: 'pointer' 
+          style={{
+            background: "var(--bg-color)",
+            color: "var(--accent-color)",
+            border: "none",
+            borderRadius: 10,
+            padding: "10px",
+            fontWeight: 800,
+            fontSize: 12,
+            cursor: "pointer",
           }}
         >
           Install App
@@ -1195,37 +1999,183 @@ function PWAInstallPrompt() {
 
 // ── PIN Screen ────────────────────────────────────────────────────────────────
 
-const NUMPAD = [['1','2','3'],['4','5','6'],['7','8','9'],['','0','⌫']];
+const NUMPAD = [
+  ["1", "2", "3"],
+  ["4", "5", "6"],
+  ["7", "8", "9"],
+  ["", "0", "⌫"],
+];
 
-function PinScreen({ pin, shake, onInput, onDelete }: { pin: string; shake: boolean; onInput: (d: string) => void; onDelete: () => void }) {
+function PinScreen({
+  pin,
+  shake,
+  onInput,
+  onDelete,
+}: {
+  pin: string;
+  shake: boolean;
+  onInput: (d: string) => void;
+  onDelete: () => void;
+}) {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
-      <div style={{ width: '100%', maxWidth: 280 }}>
-        <div style={{ textAlign: 'center', marginBottom: 44 }}>
-          <div style={{ width: 88, height: 88, borderRadius: 24, background: 'var(--surface-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-            <img src="https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png" alt="Bistro CRM" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--bg-color)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 32px",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: 280 }}>
+        <div style={{ textAlign: "center", marginBottom: 44 }}>
+          <div
+            style={{
+              width: 88,
+              height: 88,
+              borderRadius: 24,
+              background: "var(--surface-color)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 24px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+              border: "1px solid var(--border-color)",
+              overflow: "hidden",
+            }}
+          >
+            <img
+              src="https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png"
+              alt="Bistro CRM"
+              style={{ width: "80%", height: "80%", objectFit: "contain" }}
+            />
           </div>
-          <div style={{ fontSize: 23, fontWeight: 800, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>Bistro CRM</div>
-          <div style={{ fontSize: 13, color: 'var(--accent-color)', fontWeight: 600, marginTop: 4 }}>Enterprise Lead Management</div>
+          <div
+            style={{
+              fontSize: 23,
+              fontWeight: 800,
+              color: "var(--text-color)",
+              letterSpacing: "-0.3px",
+            }}
+          >
+            Bistro CRM
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--accent-color)",
+              fontWeight: 600,
+              marginTop: 4,
+            }}
+          >
+            Enterprise Lead Management
+          </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 18, marginBottom: 8, animation: shake ? 'shake 0.5s ease-in-out' : 'none' }}>
-          {[0,1,2,3,4,5].map(i => <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', background: i < pin.length ? 'var(--accent-color)' : 'transparent', border: `2px solid ${shake ? 'var(--danger-color)' : i < pin.length ? 'var(--accent-color)' : 'var(--border-color)'}`, transition: 'all 0.15s', boxShadow: i < pin.length ? `0 0 8px color-mix(in srgb, var(--accent-color), transparent 60%)` : 'none' }} />)}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 18,
+            marginBottom: 8,
+            animation: shake ? "shake 0.5s ease-in-out" : "none",
+          }}
+        >
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: "50%",
+                background:
+                  i < pin.length ? "var(--accent-color)" : "transparent",
+                border: `2px solid ${shake ? "var(--danger-color)" : i < pin.length ? "var(--accent-color)" : "var(--border-color)"}`,
+                transition: "all 0.15s",
+                boxShadow:
+                  i < pin.length
+                    ? `0 0 8px color-mix(in srgb, var(--accent-color), transparent 60%)`
+                    : "none",
+              }}
+            />
+          ))}
         </div>
-        <div style={{ height: 22, textAlign: 'center', marginBottom: 20 }}>
-          {shake && <span style={{ color: 'var(--danger-color)', fontSize: 12, fontWeight: 600 }}>Incorrect PIN. Try again.</span>}
+        <div style={{ height: 22, textAlign: "center", marginBottom: 20 }}>
+          {shake && (
+            <span
+              style={{
+                color: "var(--danger-color)",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              Incorrect PIN. Try again.
+            </span>
+          )}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 10,
+          }}
+        >
           {NUMPAD.flat().map((d, i) => (
-            <button key={i} onClick={() => d === '⌫' ? onDelete() : d !== '' ? onInput(d) : undefined}
+            <button
+              key={i}
+              onClick={() =>
+                d === "⌫" ? onDelete() : d !== "" ? onInput(d) : undefined
+              }
               className="transition-enterprise"
-              style={{ height: 64, borderRadius: 18, border: d === '' ? 'none' : '1px solid var(--border-color)', background: d === '' ? 'transparent' : 'var(--surface-color)', color: 'var(--text-color)', opacity: d === '⌫' ? 0.6 : 1, fontSize: d === '⌫' ? 22 : 24, fontWeight: 600, cursor: d === '' ? 'default' : 'pointer' }}>
+              style={{
+                height: 64,
+                borderRadius: 18,
+                border: d === "" ? "none" : "1px solid var(--border-color)",
+                background: d === "" ? "transparent" : "var(--surface-color)",
+                color: "var(--text-color)",
+                opacity: d === "⌫" ? 0.6 : 1,
+                fontSize: d === "⌫" ? 22 : 24,
+                fontWeight: 600,
+                cursor: d === "" ? "default" : "pointer",
+              }}
+            >
               {d}
             </button>
           ))}
         </div>
-        <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px dotted var(--border-color)', width: '100%' }}>
-          <button onClick={() => signIn('google')} className="transition-enterprise" style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: 'var(--text-color)', color: 'var(--bg-color)', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: 18 }} />
+        <div
+          style={{
+            marginTop: 24,
+            paddingTop: 24,
+            borderTop: "1px dotted var(--border-color)",
+            width: "100%",
+          }}
+        >
+          <button
+            onClick={() => signIn("google")}
+            className="transition-enterprise"
+            style={{
+              width: "100%",
+              padding: "14px",
+              borderRadius: 14,
+              border: "none",
+              background: "var(--text-color)",
+              color: "var(--bg-color)",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+            }}
+          >
+            <img
+              src="https://www.svgrepo.com/show/475656/google-color.svg"
+              alt="Google"
+              style={{ width: 18 }}
+            />
             Sign in with Google
           </button>
         </div>
