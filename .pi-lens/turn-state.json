@@ -1,4 +1,5 @@
 {
+<<<<<<< Updated upstream
   "files": {
     "project/src/app/leads/[id]/page.tsx": {
       "modifiedRanges": [
@@ -312,4 +313,10 @@
   "turnCycles": 0,
   "maxCycles": 3,
   "lastUpdated": "2026-04-15T14:13:15.796Z"
+=======
+  "files": {},
+  "turnCycles": 0,
+  "maxCycles": 3,
+  "lastUpdated": "2026-04-15T14:09:58.867Z"
+>>>>>>> Stashed changes
 }
