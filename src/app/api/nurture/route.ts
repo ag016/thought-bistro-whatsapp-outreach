@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleAppsScriptResponse, apiError, apiWarn } from '@/lib/api-utils';
 
 const SPREADSHEET_ID   = process.env.SPREADSHEET_ID;
 const GOOGLE_API_KEY   = process.env.GOOGLE_API_KEY;
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   if (!APPS_SCRIPT_URL) {
     // No Apps Script URL yet — return success so the UI doesn't break
     // (localStorage fallback in the client will handle it)
-    return NextResponse.json({ success: true, warn: 'APPS_SCRIPT_URL not set — data not persisted to Sheets' });
+    return apiWarn('APPS_SCRIPT_URL not set — data not persisted to Sheets');
   }
 
   try {
@@ -61,13 +62,8 @@ export async function POST(req: NextRequest) {
       redirect: 'follow',
     });
 
-    const text = await res.text();
-    let parsed: unknown;
-    try { parsed = JSON.parse(text); } catch { parsed = { raw: text }; }
-
-    return NextResponse.json({ success: true, upstream: parsed });
+    return handleAppsScriptResponse(res);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Unknown error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiError(e instanceof Error ? e.message : 'Unknown error');
   }
 }

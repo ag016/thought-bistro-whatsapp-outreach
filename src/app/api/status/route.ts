@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleAppsScriptResponse, apiError, apiWarn } from '@/lib/api-utils';
 
 const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
 const WEBHOOK_SECRET  = process.env.WEBHOOK_SECRET ?? 'tb_secret_2024';
@@ -7,11 +8,11 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as { leadId?: string; newStatus?: string };
 
   if (!body.leadId || !body.newStatus) {
-    return NextResponse.json({ error: 'leadId and newStatus required' }, { status: 400 });
+    return apiError('leadId and newStatus required', 400);
   }
 
   if (!APPS_SCRIPT_URL) {
-    return NextResponse.json({ success: true, warn: 'APPS_SCRIPT_URL not set — status not persisted' });
+    return apiWarn('APPS_SCRIPT_URL not set — status not persisted');
   }
 
   try {
@@ -27,13 +28,8 @@ export async function POST(req: NextRequest) {
       redirect: 'follow',
     });
 
-    const text = await res.text();
-    let parsed: unknown;
-    try { parsed = JSON.parse(text); } catch { parsed = { raw: text }; }
-
-    return NextResponse.json({ success: true, upstream: parsed });
+    return handleAppsScriptResponse(res);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Unknown error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiError(e instanceof Error ? e.message : 'Unknown error');
   }
 }
