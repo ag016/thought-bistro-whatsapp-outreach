@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lead } from '@/types';
+import { calculateIsDue } from '@/lib/nurture';
 
 interface KanbanBoardProps {
   leads: Lead[];
@@ -102,13 +103,15 @@ export default function KanbanBoard({ leads, onUpdateTag }: KanbanBoardProps) {
                     onClick={() => router.push(`/leads/${lead.id}`)}
                     className="transition-enterprise"
                     style={{ 
-                      background: 'var(--surface-color)', 
-                      border: '1px solid var(--border-color)', 
+                      background: calculateIsDue(lead) ? 'color-mix(in srgb, var(--accent-color), transparent 96%)' : 'var(--surface-color)', 
+                      border: calculateIsDue(lead) ? '1px solid var(--accent-color)' : '1px solid var(--border-color)', 
                       borderRadius: 16, 
                       padding: '16px', 
                       cursor: 'pointer',
                       transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02)',
+                      boxShadow: calculateIsDue(lead) 
+                        ? '0 8px 20px color-mix(in srgb, var(--accent-color), transparent 90%), 0 1px 2px rgba(0,0,0,0.02)' 
+                        : '0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02)',
                       position: 'relative'
                     }}
                     onMouseEnter={(e) => {
@@ -128,16 +131,29 @@ export default function KanbanBoard({ leads, onUpdateTag }: KanbanBoardProps) {
                         {formatDateMinimal(m.india_time || lead.created_at)}
                       </span>
                       {m.lead_status && (
-                        <span style={{ 
-                          fontSize: 10, 
-                          fontWeight: 700, 
-                          textTransform: 'uppercase',
-                          color: m.lead_status.toLowerCase() === 'qualified' ? '#10b981' : m.lead_status.toLowerCase() === 'not qualified' ? '#ef4444' : 'var(--text-color)',
-                          background: m.lead_status.toLowerCase() === 'qualified' ? 'rgba(16, 185, 129, 0.1)' : m.lead_status.toLowerCase() === 'not qualified' ? 'rgba(239, 68, 68, 0.1)' : 'var(--border-color)',
-                          padding: '2px 8px', borderRadius: 100 
-                        }}>
-                          {m.lead_status}
-                        </span>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          {calculateIsDue(lead) && (
+                            <span style={{ 
+                              fontSize: 9, 
+                              fontWeight: 900, 
+                              background: 'var(--accent-color)', 
+                              color: 'var(--bg-color)', 
+                              padding: '2px 6px', 
+                              borderRadius: 4,
+                              letterSpacing: '0.05em'
+                            }}>DUE</span>
+                          )}
+                          <span style={{ 
+                            fontSize: 10, 
+                            fontWeight: 700, 
+                            textTransform: 'uppercase',
+                            color: m.lead_status.toLowerCase() === 'qualified' ? '#10b981' : m.lead_status.toLowerCase() === 'not qualified' ? '#ef4444' : 'var(--text-color)',
+                            background: m.lead_status.toLowerCase() === 'qualified' ? 'rgba(16, 185, 129, 0.1)' : m.lead_status.toLowerCase() === 'not qualified' ? 'rgba(239, 68, 68, 0.1)' : 'var(--border-color)',
+                            padding: '2px 8px', borderRadius: 100 
+                          }}>
+                            {m.lead_status}
+                          </span>
+                        </div>
                       )}
                     </div>
 

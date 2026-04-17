@@ -608,28 +608,6 @@ function NotificationBell({
           );
           sessionBaseline.current.leads.add(latestLead.id);
         }
-
-        // 2. DUE MESSAGES: Trigger ONLY if a lead just transitioned to "Due" relative to baseline AND not already notified
-        const notifiedSteps = JSON.parse(
-          localStorage.getItem("notified_steps") || "{}",
-        );
-        const newlyDue = dueLeads.filter((l) => {
-          const baselineStep = sessionBaseline.current.steps[l.id] ?? -1;
-          const lastNotified = notifiedSteps[l.id] ?? -1;
-          return l.current_step > baselineStep && l.current_step > lastNotified;
-        });
-
-        if (newlyDue.length > 0) {
-          const dueLead = newlyDue[0];
-          await triggerPush(
-            {
-              title: "⏰ Follow-up Due",
-              body: `${dueLead.full_name} is due for message ${dueLead.current_step + 1}`,
-              url: `/leads/${dueLead.id}?tab=due`,
-              waLink: generateWhatsAppLink(
-                dueLead.phone_number,
-                personalizeMessage(
-                  NURTURE_SEQUENCE[dueLead.current_step]?.message_text || "",
                   dueLead.full_name,
                   dueLead.metadata.clinic_type,
                   dueLead.nickname,
@@ -733,38 +711,10 @@ function NotificationBell({
 
   const prevDueCount = useRef(dueLeads.length);
   useEffect(() => {
-    if (
-      dueLeads.length > prevDueCount.current &&
-      typeof window !== "undefined"
-    ) {
-      try {
-        if (
-          "Notification" in window &&
-          Notification.permission === "granted" &&
-          "serviceWorker" in navigator
-        ) {
-          const newest = dueLeads[0];
-          navigator.serviceWorker.ready
-            .then((reg) => {
-              reg.showNotification("Bistro CRM — Follow-up Due", {
-                body: `${newest.full_name} is due for message ${newest.current_step + 1}`,
-                icon: "https://d1yei2z3i6k35z.cloudfront.net/10516146/675d2acfd4750_LogoOtoChatNBG.003.png",
-                data: {
-                  url: `/leads/${newest.id}?tab=due`,
-                },
-              });
-              // We can't easily capture 'click' on local showNotification from main thread
-              // but our sw.js already handles notificationclick by redirecting to data.url
-              acknowledge(newest.id, newest.current_step);
-            })
-            .catch((err) => console.error("Local notification failed:", err));
-        }
-      } catch (e) {
-        console.error("Core notification system error:", e);
-      }
-    }
+    // Local due notifications removed as per user request.
+    // We only use visual indicators now.
     prevDueCount.current = dueLeads.length;
-  }, [dueLeads, router, acknowledge]);
+  }, [dueLeads]);
 
   const getNextMsgLink = (lead: Lead) => {
     const stepIdx = lead.current_step;

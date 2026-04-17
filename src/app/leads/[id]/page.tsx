@@ -689,11 +689,41 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mobile-tab-nav" style={{ padding: '16px 24px', display: 'flex', gap: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+      <div 
+        className="mobile-tab-nav" 
+        style={{ 
+          padding: '12px 24px', 
+          display: 'flex', 
+          gap: 12, 
+          overflowX: 'auto', 
+          whiteSpace: 'nowrap',
+          position: 'sticky',
+          top: 82, // Sticky below the header
+          zIndex: 49,
+          background: 'color-mix(in srgb, var(--bg-color), transparent 5%)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '1px solid var(--border-color)'
+        }}
+      >
         {['info', 'timeline', 'notes'].map(tab => (
           <button
             key={tab}
-            onClick={() => setMobileTab(tab as any)}
+            onClick={() => {
+              setMobileTab(tab as any);
+              const element = document.getElementById(`section-${tab}`);
+              if (element) {
+                const offset = 150; // Account for sticky header + nav
+                const bodyRect = document.body.getBoundingClientRect().top;
+                const elementRect = element.getBoundingClientRect().top;
+                const elementPosition = elementRect - bodyRect;
+                const offsetPosition = elementPosition - offset;
+
+                window.scrollTo({
+                  top: offsetPosition,
+                  behavior: 'smooth'
+                });
+              }
+            }}
             style={{
               padding: "8px 16px",
               borderRadius: 12,
@@ -723,19 +753,45 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
         <div className="detail-grid">
           {/* --- LEFT PANEL: Lead Info & Identity --- */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'info' ? '' : 'hidden-mobile'}>
+            <div id="section-info" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Nurture Progress */}
-              <div className="pane-card">
+              <div 
+                className="pane-card"
+                style={{
+                  border: !isCompleted && getNextDueTimestamp(lead) <= Date.now() ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+                  background: !isCompleted && getNextDueTimestamp(lead) <= Date.now() ? 'color-mix(in srgb, var(--accent-color), transparent 96%)' : 'var(--surface-color)',
+                  boxShadow: !isCompleted && getNextDueTimestamp(lead) <= Date.now() ? '0 0 20px color-mix(in srgb, var(--accent-color), transparent 92%)' : 'none'
+                }}
+              >
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "var(--accent-color)",
-                    letterSpacing: "0.08em",
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     marginBottom: 14,
                   }}
                 >
-                  NURTURE PROGRESS
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "var(--accent-color)",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    NURTURE PROGRESS
+                  </div>
+                  {!isCompleted && getNextDueTimestamp(lead) <= Date.now() && (
+                    <span style={{ 
+                      fontSize: 9, 
+                      fontWeight: 900, 
+                      background: 'var(--accent-color)', 
+                      color: 'var(--bg-color)', 
+                      padding: '2px 8px', 
+                      borderRadius: 100,
+                      letterSpacing: '0.05em'
+                    }}>DUE NOW</span>
+                  )}
                 </div>
                 <div style={{ display: "flex", gap: 3, marginBottom: 10 }}>
                   {NURTURE_SEQUENCE.map((_, i) => (
@@ -775,14 +831,17 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                     (() => {
                       const dueTs = getNextDueTimestamp(lead);
                       return dueTs <= Date.now() ? (
-                        <span
-                          style={{
-                            color: "var(--accent-color)",
-                            fontWeight: 700,
-                          }}
-                        >
-                          Due now
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span
+                            style={{
+                              color: "var(--accent-color)",
+                              fontWeight: 800,
+                              fontSize: 14
+                            }}
+                          >
+                            Due now
+                          </span>
+                        </div>
                       ) : (
                         <Timer
                           targetTimestamp={dueTs}
@@ -1036,10 +1095,9 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Booked Appointments — Moved to Notes tab on mobile */}
+            {/* Booked Appointments — Stays with info on desktop, scrolls to section-notes on mobile */}
             {(upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
               <div
-                className={mobileTab === 'notes' ? '' : 'hidden-mobile'}
                 style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
               >
                 <div
@@ -1289,7 +1347,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
           </div>
 
           {/* --- CENTER PANEL: Message Timeline --- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'timeline' ? '' : 'hidden-mobile'}>
+          <div id="section-timeline" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             <div className="pane-card">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', letterSpacing: '0.08em', marginBottom: 16 }}>MESSAGE TIMELINE</div>
@@ -1406,7 +1464,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
           </div>
 
           {/* --- RIGHT PANEL: Action Center --- */}
-          <div className={mobileTab === 'notes' ? '' : 'hidden-mobile'}>
+          <div id="section-notes">
             <ActionCenter
               lead={lead}
               notes={displayNotes}

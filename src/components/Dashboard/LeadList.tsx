@@ -138,7 +138,8 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
                 style={{ 
                   cursor: 'pointer', 
                   borderBottom: '1px solid var(--border-color)',
-                  background: 'transparent'
+                  background: calculateIsDue(lead) ? 'color-mix(in srgb, var(--accent-color), transparent 94%)' : 'transparent',
+                  borderLeft: calculateIsDue(lead) ? '4px solid var(--accent-color)' : '4px solid transparent',
                 }}
               >
                 <td style={{ padding: '16px 20px' }}>
@@ -204,7 +205,21 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
                     const dueTs = getNextDueTimestamp(lead);
                     const isDue = calculateIsDue(lead);
                     if (isDue) {
-                      return <span style={{ fontSize: 12, color: 'var(--accent-color)', fontWeight: 700 }}>Due Now</span>;
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ 
+                            fontSize: 10, 
+                            background: 'var(--accent-color)', 
+                            color: 'var(--bg-color)', 
+                            padding: '2px 8px', 
+                            borderRadius: 100, 
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.02em'
+                          }}>Due</span>
+                          <span style={{ fontSize: 12, color: 'var(--accent-color)', fontWeight: 700 }}>Now</span>
+                        </div>
+                      );
                     }
                     if (dueTs > Date.now()) {
                       return <Timer targetTimestamp={dueTs} prefix="Due in" style={{ fontSize: 11 }} />;
@@ -225,7 +240,15 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
             key={lead.id}
             onClick={() => handleRowClick(lead.id)}
             className="pane-card transition-enterprise"
-            style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}
+            style={{ 
+              padding: 16, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 12,
+              border: calculateIsDue(lead) ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+              background: calculateIsDue(lead) ? 'color-mix(in srgb, var(--accent-color), transparent 96%)' : 'var(--surface-color)',
+              boxShadow: calculateIsDue(lead) ? '0 0 15px color-mix(in srgb, var(--accent-color), transparent 90%)' : 'none'
+            }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -266,7 +289,21 @@ export default function LeadList({ leads, onPause, onUpdateTag, onNavigate }: Le
               </div>
               {(() => {
                 const dueTs = getNextDueTimestamp(lead);
-                if (!calculateIsDue(lead) && dueTs > Date.now()) {
+                const isDue = calculateIsDue(lead);
+                if (isDue) {
+                  return (
+                    <span style={{ 
+                      fontSize: 10, 
+                      background: 'var(--accent-color)', 
+                      color: 'var(--bg-color)', 
+                      padding: '2px 8px', 
+                      borderRadius: 100, 
+                      fontWeight: 800,
+                      textTransform: 'uppercase'
+                    }}>Due Now</span>
+                  );
+                }
+                if (dueTs > Date.now()) {
                   return <Timer targetTimestamp={dueTs} prefix="Due" style={{ fontSize: 10 }} />;
                 }
                 return null;
