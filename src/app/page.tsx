@@ -608,25 +608,7 @@ function NotificationBell({
           );
           sessionBaseline.current.leads.add(latestLead.id);
         }
-                  dueLead.full_name,
-                  dueLead.metadata.clinic_type,
-                  dueLead.nickname,
-                ),
-              ),
-            },
-            subscription,
-          );
 
-          // Update both local storage and in-memory baseline immediately
-          localStorage.setItem(
-            "notified_steps",
-            JSON.stringify({
-              ...notifiedSteps,
-              [dueLead.id]: dueLead.current_step,
-            }),
-          );
-          sessionBaseline.current.steps[dueLead.id] = dueLead.current_step;
-        }
       } catch (e) {
         console.error("Background Notification check error:", e);
       }
