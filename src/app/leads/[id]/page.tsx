@@ -243,7 +243,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
   const [nicknameInput, setNicknameInput] = useState("");
   const [savingNickname, setSavingNickname] = useState(false);
   const [showPastApts, setShowPastApts] = useState(false);
-  const [mobileTab, setMobileTab] = useState<"info" | "timeline" | "actions">(
+  const [mobileTab, setMobileTab] = useState<"info" | "timeline" | "notes">(
     "info",
   );
 
@@ -689,9 +689,8 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* --- Mobile Tab Navigation --- */}
       <div className="mobile-tab-nav" style={{ padding: '16px 24px', display: 'flex', gap: 12, overflowX: 'auto', whiteSpace: 'nowrap' }}>
-        {['info', 'timeline', 'actions'].map(tab => (
+        {['info', 'timeline', 'notes'].map(tab => (
           <button
             key={tab}
             onClick={() => setMobileTab(tab as any)}
@@ -723,512 +722,360 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
       <div style={{ padding: "24px" }}>
         <div className="detail-grid">
           {/* --- LEFT PANEL: Lead Info & Identity --- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'info' ? '' : 'hidden-mobile'}>
-
-            {/* Nurture Progress */}
-            <div className="pane-card">
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--accent-color)",
-                  letterSpacing: "0.08em",
-                  marginBottom: 14,
-                }}
-              >
-                NURTURE PROGRESS
-              </div>
-              <div style={{ display: "flex", gap: 3, marginBottom: 10 }}>
-                {NURTURE_SEQUENCE.map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      height: 4,
-                      borderRadius: 2,
-                      background:
-                        i < lead.current_step
-                          ? "var(--accent-color)"
-                          : i === lead.current_step && !isCompleted
-                            ? "rgba(var(--accent-color), 0.35)"
-                            : "var(--border-color)",
-                    }}
-                  />
-                ))}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "var(--text-color)", fontWeight: 700 }}>
-                  Step {lead.current_step} / 10
-                </span>
-                {isCompleted ? (
-                  <span
-                    style={{ color: "var(--accent-color)", fontWeight: 700 }}
-                  >
-                    Sequence complete
-                  </span>
-                ) : (
-                  (() => {
-                    const dueTs = getNextDueTimestamp(lead);
-                    return dueTs <= Date.now() ? (
-                      <span
-                        style={{
-                          color: "var(--accent-color)",
-                          fontWeight: 700,
-                        }}
-                      >
-                        Due now
-                      </span>
-                    ) : (
-                      <Timer
-                        targetTimestamp={dueTs}
-                        prefix="Next in"
-                        style={{ color: "var(--text-color)" }}
-                      />
-                    );
-                  })()
-                )}
-              </div>
-              {lead.last_sent_at && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className={mobileTab === 'info' ? '' : 'hidden-mobile'}>
+              {/* Nurture Progress */}
+              <div className="pane-card">
                 <div
                   style={{
                     fontSize: 11,
-                    color: "var(--text-color)",
-                    opacity: 0.4,
-                    marginTop: 6,
+                    fontWeight: 700,
+                    color: "var(--accent-color)",
+                    letterSpacing: "0.08em",
+                    marginBottom: 14,
                   }}
                 >
-                  Last sent: {fmt(lead.last_sent_at)}
+                  NURTURE PROGRESS
                 </div>
-              )}
-            </div>
-
-            {/* Lead Info */}
-            <div className="pane-card">
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--accent-color)",
-                  letterSpacing: "0.08em",
-                  marginBottom: 14,
-                }}
-              >
-                LEAD INFO
-              </div>
-
-              {/* Nickname field */}
-              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", gap: 3, marginBottom: 10 }}>
+                  {NURTURE_SEQUENCE.map((_, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        flex: 1,
+                        height: 4,
+                        borderRadius: 2,
+                        background:
+                          i < lead.current_step
+                            ? "var(--accent-color)"
+                            : i === lead.current_step && !isCompleted
+                              ? "rgba(var(--accent-color), 0.35)"
+                              : "var(--border-color)",
+                      }}
+                    />
+                  ))}
+                </div>
                 <div
                   style={{
-                    fontSize: 10,
-                    color: "var(--text-color)",
-                    opacity: 0.5,
-                    marginBottom: 6,
-                    fontWeight: 600,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 13,
                   }}
                 >
-                  ADDRESSED NAME (NICKNAME)
-                </div>
-                {editingNickname ? (
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <input
-                      type="text"
-                      value={nicknameInput}
-                      onChange={(e) => setNicknameInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveNickname();
-                        if (e.key === "Escape") {
-                          setEditingNickname(false);
-                          setNicknameInput(lead.nickname || "");
-                        }
-                      }}
-                      className="input-field"
-                      style={{ flex: 1, fontSize: 13 }}
-                      placeholder="e.g. Dr. Rajesh or just Rajesh"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleSaveNickname}
-                      disabled={savingNickname}
-                      style={{
-                        padding: "6px 12px",
-                        borderRadius: 8,
-                        background: "var(--accent-color)",
-                        color: "var(--bg-color)",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        border: "none",
-                        cursor: "pointer",
-                      }}
+                  <span style={{ color: "var(--text-color)", fontWeight: 700 }}>
+                    Step {lead.current_step} / 10
+                  </span>
+                  {isCompleted ? (
+                    <span
+                      style={{ color: "var(--accent-color)", fontWeight: 700 }}
                     >
-                      Save
-                    </button>
-                  </div>
-                ) : (
+                      Sequence complete
+                    </span>
+                  ) : (
+                    (() => {
+                      const dueTs = getNextDueTimestamp(lead);
+                      return dueTs <= Date.now() ? (
+                        <span
+                          style={{
+                            color: "var(--accent-color)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Due now
+                        </span>
+                      ) : (
+                        <Timer
+                          targetTimestamp={dueTs}
+                          prefix="Next in"
+                          style={{ color: "var(--text-color)" }}
+                        />
+                      );
+                    })()
+                  )}
+                </div>
+                {lead.last_sent_at && (
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      cursor: "pointer",
+                      fontSize: 11,
+                      color: "var(--text-color)",
+                      opacity: 0.4,
+                      marginTop: 6,
                     }}
-                    onClick={() => setEditingNickname(true)}
                   >
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: lead.nickname
-                          ? "var(--text-color)"
-                          : "var(--text-color)",
-                        opacity: lead.nickname ? 0.9 : 0.4,
-                        flex: 1,
-                      }}
-                    >
-                      {lead.nickname || "Click to set nickname…"}
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: "var(--accent-color)",
-                        opacity: 0.7,
-                      }}
-                    >
-                      ✏️
-                    </span>
+                    Last sent: {fmt(lead.last_sent_at)}
                   </div>
                 )}
+              </div>
+
+              {/* Lead Info */}
+              <div className="pane-card">
                 <div
                   style={{
-                    fontSize: 10,
-                    color: "var(--text-color)",
-                    opacity: 0.35,
-                    marginTop: 4,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--accent-color)",
+                    letterSpacing: "0.08em",
+                    marginBottom: 14,
                   }}
                 >
-                  Used in all outgoing messages (avoids "Dr. Dr." issue)
+                  LEAD INFO
                 </div>
-              </div>
 
-              {/* Internal Tag */}
-              <div style={{ marginBottom: 14 }}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: "var(--text-color)",
-                    opacity: 0.5,
-                    marginBottom: 6,
-                    fontWeight: 600,
-                  }}
-                >
-                  INTERNAL TAG
-                </div>
-                <select
-                  value={lead.internal_tag || "NEW"}
-                  onChange={(e) => handleUpdateTag(e.target.value)}
-                  className="input-field"
-                  style={{
-                    width: "100%",
-                    cursor: "pointer",
-                    appearance: "none",
-                  }}
-                >
-                  <option value="NEW">NEW</option>
-                  <option value="HOT">HOT</option>
-                  <option value="WARM">WARM</option>
-                  <option value="COLD">COLD</option>
-                  <option value="FOLLOW_UP">FOLLOW UP</option>
-                  <option value="CONVERTED">CONVERTED</option>
-                </select>
-              </div>
-
-              <div className="meta-grid">
-                {m.platform && (
-                  <InfoField label="Platform" value={m.platform} />
-                )}
-                {m.campaign_name && (
-                  <InfoField label="Campaign" value={m.campaign_name} />
-                )}
-                {m.ad_name && <InfoField label="Ad" value={m.ad_name} />}
-                {m.clinic_type && (
-                  <InfoField label="Clinic Type" value={m.clinic_type} />
-                )}
-                {m.treatment_price && (
-                  <InfoField
-                    label="Avg Price"
-                    value={`Rs. ${m.treatment_price}`}
-                  />
-                )}
-                {m.lead_status && (
-                  <InfoField label="Status" value={m.lead_status} />
-                )}
-              </div>
-
-              <div style={{ marginTop: 14 }}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: "var(--text-color)",
-                    opacity: 0.5,
-                    marginBottom: 6,
-                    fontWeight: 600,
-                  }}
-                >
-                  SHEET STATUS (QUALIFICATION)
-                </div>
-                <select
-                  value={m.lead_status || "CREATED"}
-                  onChange={(e) => handleUpdateStatus(e.target.value)}
-                  className="input-field"
-                  style={{
-                    width: "100%",
-                    cursor: "pointer",
-                    appearance: "none",
-                  }}
-                >
-                  <option value="CREATED">CREATED</option>
-                  <option value="Qualified">Qualified</option>
-                  <option value="Not Qualified">Not Qualified</option>
-                </select>
-              </div>
-
-              <InfoField
-                label="Submitted"
-                value={fmt(m.india_time || lead.created_at)}
-                fullWidth
-              />
-
-              {m.lead_quality_desc && (
-                <div
-                  style={{
-                    marginTop: 14,
-                    paddingTop: 14,
-                    borderTop: "1px solid var(--border-color)",
-                  }}
-                >
+                {/* Nickname field */}
+                <div style={{ marginBottom: 14 }}>
                   <div
                     style={{
                       fontSize: 10,
                       color: "var(--text-color)",
-                      opacity: 0.7,
+                      opacity: 0.5,
                       marginBottom: 6,
-                      fontWeight: 700,
+                      fontWeight: 600,
                     }}
                   >
-                    CURRENT LEAD SITUATION
+                    ADDRESSED NAME (NICKNAME)
                   </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "var(--text-color)",
-                      opacity: 0.9,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {m.lead_quality_desc}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Booked Appointments — Moved to Left Sidebar below Lead Info */}
-            {(upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
-              <div
-                className="pane-card"
-                style={{
-                  border: "2px solid var(--info-color)",
-                  background:
-                    "linear-gradient(to bottom, rgba(59,130,246,0.12), transparent)",
-                  padding: 16,
-                }}
-              >
-                {upcomingAppointments.length > 0 && (
-                  <div style={{ marginBottom: 20 }}>
+                  {editingNickname ? (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <input
+                        type="text"
+                        value={nicknameInput}
+                        onChange={(e) => setNicknameInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveNickname();
+                          if (e.key === "Escape") {
+                            setEditingNickname(false);
+                            setNicknameInput(lead.nickname || "");
+                          }
+                        }}
+                        className="input-field"
+                        style={{ flex: 1, fontSize: 13 }}
+                        placeholder="e.g. Dr. Rajesh or just Rajesh"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleSaveNickname}
+                        disabled={savingNickname}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          background: "var(--accent-color)",
+                          color: "var(--bg-color)",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  ) : (
                     <div
                       style={{
-                        fontSize: 11,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setEditingNickname(true)}
+                    >
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: lead.nickname
+                            ? "var(--text-color)"
+                            : "var(--text-color)",
+                          opacity: lead.nickname ? 0.9 : 0.4,
+                          flex: 1,
+                        }}
+                      >
+                        {lead.nickname || "Click to set nickname…"}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "var(--accent-color)",
+                          opacity: 0.7,
+                        }}
+                      >
+                        ✏️
+                      </span>
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-color)",
+                      opacity: 0.35,
+                      marginTop: 4,
+                    }}
+                  >
+                    Used in all outgoing messages (avoids "Dr. Dr." issue)
+                  </div>
+                </div>
+
+                {/* Internal Tag */}
+                <div style={{ marginBottom: 14 }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-color)",
+                      opacity: 0.5,
+                      marginBottom: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    INTERNAL TAG
+                  </div>
+                  <select
+                    value={lead.internal_tag || "NEW"}
+                    onChange={(e) => handleUpdateTag(e.target.value)}
+                    className="input-field"
+                    style={{
+                      width: "100%",
+                      cursor: "pointer",
+                      appearance: "none",
+                    }}
+                  >
+                    <option value="NEW">NEW</option>
+                    <option value="HOT">HOT</option>
+                    <option value="WARM">WARM</option>
+                    <option value="COLD">COLD</option>
+                    <option value="FOLLOW_UP">FOLLOW UP</option>
+                    <option value="CONVERTED">CONVERTED</option>
+                  </select>
+                </div>
+
+                <div className="meta-grid">
+                  {m.platform && (
+                    <InfoField label="Platform" value={m.platform} />
+                  )}
+                  {m.campaign_name && (
+                    <InfoField label="Campaign" value={m.campaign_name} />
+                  )}
+                  {m.ad_name && <InfoField label="Ad" value={m.ad_name} />}
+                  {m.clinic_type && (
+                    <InfoField label="Clinic Type" value={m.clinic_type} />
+                  )}
+                  {m.treatment_price && (
+                    <InfoField
+                      label="Avg Price"
+                      value={`Rs. ${m.treatment_price}`}
+                    />
+                  )}
+                  {m.lead_status && (
+                    <InfoField label="Status" value={m.lead_status} />
+                  )}
+                </div>
+
+                <div style={{ marginTop: 14 }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-color)",
+                      opacity: 0.5,
+                      marginBottom: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    SHEET STATUS (QUALIFICATION)
+                  </div>
+                  <select
+                    value={m.lead_status || "CREATED"}
+                    onChange={(e) => handleUpdateStatus(e.target.value)}
+                    className="input-field"
+                    style={{
+                      width: "100%",
+                      cursor: "pointer",
+                      appearance: "none",
+                    }}
+                  >
+                    <option value="CREATED">CREATED</option>
+                    <option value="Qualified">Qualified</option>
+                    <option value="Not Qualified">Not Qualified</option>
+                  </select>
+                </div>
+
+                <InfoField
+                  label="Submitted"
+                  value={fmt(m.india_time || lead.created_at)}
+                  fullWidth
+                />
+
+                {m.lead_quality_desc && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 14,
+                      borderTop: "1px solid var(--border-color)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "var(--text-color)",
+                        opacity: 0.7,
+                        marginBottom: 6,
                         fontWeight: 700,
-                        color: "var(--info-color)",
-                        letterSpacing: "0.08em",
-                        marginBottom: 14,
                       }}
                     >
-                      📅 UPCOMING CALLS
+                      CURRENT LEAD SITUATION
                     </div>
                     <div
-                      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                      style={{
+                        fontSize: 13,
+                        color: "var(--text-color)",
+                        opacity: 0.9,
+                        lineHeight: 1.6,
+                      }}
                     >
-                      {upcomingAppointments.map((apt, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            borderRadius: 16,
-                            padding: "16px",
-                            background: "var(--surface-color)",
-                            border: "1px solid var(--border-color)",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "start",
-                              marginBottom: 8,
-                            }}
-                          >
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: 16,
-                                  fontWeight: 800,
-                                  color: "var(--text-color)",
-                                }}
-                                >
-                                {apt.formattedDate}
-                              </div>
-                              {apt.title && (
-                                <div
-                                  style={{
-                                    fontSize: 13,
-                                    color: "var(--info-color)",
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {apt.title}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ background: 'var(--info-color)', color: 'var(--bg-color)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 800 }}>CONFIRMED</div>
-                          </div>
-
-                          {apt.bookerEmail && (
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: "var(--text-color)",
-                                opacity: 0.5,
-                                marginBottom: 12,
-                              }}
-                            >
-                              Host:{" "}
-                              <span
-                                style={{ color: "var(--text-color)", opacity: 0.9 }}
-                                >
-                                {apt.bookerEmail}
-                              </span>
-                            </div>
-                          )}
-
-                          <div
-                            style={{
-                              borderTop: "1px solid var(--border-color)",
-                              paddingTop: 12,
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                                color: "var(--text-color)",
-                                opacity: 0.4,
-                                marginBottom: 8,
-                              }}
-                            >
-                              Send Reminders
-                            </div>
-                            <div
-                              style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
-                            >
-                              {APPOINTMENT_CONFIRMATIONS.map((conf) => {
-                                const msg = conf.buildMessage(
-                                  lead.full_name,
-                                  apt.timeOnlyStr || apt.formattedDate,
-                                  lead.nickname,
-                                );
-                                const waLink = generateWhatsAppLink(
-                                  lead.phone_number,
-                                  msg,
-                                );
-                                return (
-                                  <a
-                                    key={conf.id}
-                                    href={waLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="transition-enterprise"
-                                    style={{
-                                      fontSize: 10.5,
-                                      fontWeight: 700,
-                                      padding: "6px 10px",
-                                      borderRadius: 8,
-                                      background: "var(--info-color)",
-                                      color: "var(--bg-color)",
-                                      textDecoration: "none",
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    {conf.label} ↗
-                                  </a>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                      {m.lead_quality_desc}
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
 
-                {pastAppointments.length > 0 && (
-                  <div>
-                    <button
-                      onClick={() => setShowPastApts(!showPastApts)}
-                      className="transition-enterprise"
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '8px 0',
-                        marginBottom: showPastApts ? 12 : 0,
-                      }}
-                    >
+            {/* Booked Appointments — Moved to Notes tab on mobile */}
+            {(upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
+              <div
+                className={mobileTab === 'notes' ? '' : 'hidden-mobile'}
+                style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+              >
+                <div
+                  className="pane-card"
+                  style={{
+                    border: "2px solid var(--info-color)",
+                    background:
+                      "linear-gradient(to bottom, rgba(59,130,246,0.12), transparent)",
+                    padding: 16,
+                  }}
+                >
+                  {upcomingAppointments.length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
                       <div
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          color: "var(--text-color)",
-                          opacity: 0.6,
+                          color: "var(--info-color)",
                           letterSpacing: "0.08em",
+                          marginBottom: 14,
                         }}
                       >
-                        🕒 PAST BOOKINGS ({pastAppointments.length})
+                        📅 UPCOMING CALLS
                       </div>
-                      <span style={{ fontSize: 12, transition: 'transform 0.2s', transform: showPastApts ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
-                    </button>
-                    {showPastApts && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        {pastAppointments.map((apt, i) => (
+                      <div
+                        style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                      >
+                        {upcomingAppointments.map((apt, i) => (
                           <div
                             key={i}
                             style={{
                               borderRadius: 16,
-                              padding: "12px",
+                              padding: "16px",
                               background: "var(--surface-color)",
                               border: "1px solid var(--border-color)",
-                              opacity: 0.6,
-                              filter: 'grayscale(1)',
+                              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                             }}
                           >
                             <div
@@ -1236,23 +1083,23 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                                 display: "flex",
                                 justifyContent: "space-between",
                                 alignItems: "start",
-                                marginBottom: 4,
+                                marginBottom: 8,
                               }}
                             >
                               <div>
                                 <div
                                   style={{
-                                    fontSize: 14,
-                                    fontWeight: 700,
+                                    fontSize: 16,
+                                    fontWeight: 800,
                                     color: "var(--text-color)",
                                   }}
-                                >
+                                  >
                                   {apt.formattedDate}
                                 </div>
                                 {apt.title && (
                                   <div
                                     style={{
-                                      fontSize: 12,
+                                      fontSize: 13,
                                       color: "var(--info-color)",
                                       fontWeight: 600,
                                     }}
@@ -1261,24 +1108,182 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
                                   </div>
                                 )}
                               </div>
+                              <div style={{ background: 'var(--info-color)', color: 'var(--bg-color)', padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 800 }}>CONFIRMED</div>
                             </div>
+
                             {apt.bookerEmail && (
                               <div
                                 style={{
                                   fontSize: 11,
                                   color: "var(--text-color)",
                                   opacity: 0.5,
+                                  marginBottom: 12,
                                 }}
-                                >
-                                Host: {apt.bookerEmail}
+                              >
+                                Host:{" "}
+                                <span
+                                  style={{ color: "var(--text-color)", opacity: 0.9 }}
+                                  >
+                                  {apt.bookerEmail}
+                                </span>
                               </div>
                             )}
+
+                            <div
+                              style={{
+                                borderTop: "1px solid var(--border-color)",
+                                paddingTop: 12,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.05em",
+                                  color: "var(--text-color)",
+                                  opacity: 0.4,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                Send Reminders
+                              </div>
+                              <div
+                                style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+                              >
+                                {APPOINTMENT_CONFIRMATIONS.map((conf) => {
+                                  const msg = conf.buildMessage(
+                                    lead.full_name,
+                                    apt.timeOnlyStr || apt.formattedDate,
+                                    lead.nickname,
+                                  );
+                                  const waLink = generateWhatsAppLink(
+                                    lead.phone_number,
+                                    msg,
+                                  );
+                                  return (
+                                    <a
+                                      key={conf.id}
+                                      href={waLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="transition-enterprise"
+                                      style={{
+                                        fontSize: 10.5,
+                                        fontWeight: 700,
+                                        padding: "6px 10px",
+                                        borderRadius: 8,
+                                        background: "var(--info-color)",
+                                        color: "var(--bg-color)",
+                                        textDecoration: "none",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      {conf.label} ↗
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+
+                  {pastAppointments.length > 0 && (
+                    <div>
+                      <button
+                        onClick={() => setShowPastApts(!showPastApts)}
+                        className="transition-enterprise"
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '8px 0',
+                          marginBottom: showPastApts ? 12 : 0,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "var(--text-color)",
+                            opacity: 0.6,
+                            letterSpacing: "0.08em",
+                          }}
+                        >
+                          🕒 PAST BOOKINGS ({pastAppointments.length})
+                        </div>
+                        <span style={{ fontSize: 12, transition: 'transform 0.2s', transform: showPastApts ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                      </button>
+                      {showPastApts && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                          {pastAppointments.map((apt, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                borderRadius: 16,
+                                padding: "12px",
+                                background: "var(--surface-color)",
+                                border: "1px solid var(--border-color)",
+                                opacity: 0.6,
+                                filter: 'grayscale(1)',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "start",
+                                  marginBottom: 4,
+                                }}
+                              >
+                                <div>
+                                  <div
+                                    style={{
+                                      fontSize: 14,
+                                      fontWeight: 700,
+                                      color: "var(--text-color)",
+                                    }}
+                                  >
+                                    {apt.formattedDate}
+                                  </div>
+                                  {apt.title && (
+                                    <div
+                                      style={{
+                                        fontSize: 12,
+                                        color: "var(--info-color)",
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      {apt.title}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              {apt.bookerEmail && (
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: "var(--text-color)",
+                                    opacity: 0.5,
+                                  }}
+                                  >
+                                  Host: {apt.bookerEmail}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1401,7 +1406,7 @@ function LeadDetailInner({ params }: { params: { id: string } }) {
           </div>
 
           {/* --- RIGHT PANEL: Action Center --- */}
-          <div className={mobileTab === 'actions' ? '' : 'hidden-mobile'}>
+          <div className={mobileTab === 'notes' ? '' : 'hidden-mobile'}>
             <ActionCenter
               lead={lead}
               notes={displayNotes}

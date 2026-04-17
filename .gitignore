@@ -24,3 +24,8 @@ yarn-error.log*
 
 # Vercel
 .vercel
+
+# Tooling
+.pi/
+.pi-lens/
+.superpowers/
